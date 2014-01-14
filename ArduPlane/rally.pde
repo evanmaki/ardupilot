@@ -117,6 +117,13 @@ static int16_t find_best_landing_wp(const Location &myloc, Location &landing_WP)
            }
         }
     }
+
+    //DON'T GO TOO FAR! if the closest landing waypoint is too far away
+    //(based on g.rally_limit_km), then don't use it -- don't autoland.
+    if (g.rally_limit_km > 0 && min_distance > g.rally_limit_km * 1000.0f) {
+        return -1;
+    }
+
     return landing_wp_index;
 }
 

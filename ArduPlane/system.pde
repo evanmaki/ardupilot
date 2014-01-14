@@ -295,6 +295,12 @@ static void set_mode(enum FlightMode mode)
     if(g.auto_trim > 0 && control_mode == MANUAL)
         trim_control_surfaces();
 
+    //if leaving RTL mode reset rally auto landing data
+    //(in case of a wave-off during RTL landing)
+    if (control_mode == RTL) {
+        rally_land_wp_idx = -1;
+    }
+
     control_mode = mode;
 
     switch(control_mode)
