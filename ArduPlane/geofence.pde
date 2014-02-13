@@ -122,6 +122,19 @@ failed:
 }
 
 /*
+ * return true if a geo-fence has been uploaded (not necessarily enabled)
+ */
+static bool geofence_present(void)
+{
+    //require at least a return point and a triangle
+    //to define a geofence area:
+    if (g.fence_total < 4) {
+        return false;
+    }
+    return true;
+}
+
+/*
  *  return true if geo-fencing is enabled
  */
 static bool geofence_enabled(void)
