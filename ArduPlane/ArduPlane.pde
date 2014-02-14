@@ -556,6 +556,8 @@ static bool auto_throttle_mode;
 // this controls throttle suppression in auto modes
 static bool throttle_suppressed;
 
+AP_SpdHgtControl::FlightStage flight_stage = AP_SpdHgtControl::FLIGHT_NORMAL;
+
 ////////////////////////////////////////////////////////////////////////////////
 // Loiter management
 ////////////////////////////////////////////////////////////////////////////////
@@ -1348,6 +1350,23 @@ static void update_navigation()
     }
 }
 
+static void update_flight_stage(AP_SpdHgtControl::FlightStage fs) {
+    //if just now entering land flight stage
+    if (fs == AP_SpdHgtControl::FLIGHT_LAND_APPROACH &&
+            flight_stage != AP_SpdHgtControl::FLIGHT_LAND_APPROACH) {
+
+        if (g.fence_autoenable == 1) {
+            if (! geofence_set_enabled(false, AUTO_TOGGLED)) {
+                gcs_send_text_P(SEVERITY_HIGH, PSTR("Disable fence failed (autodisable)"));
+            } else {
+                gcs_send_text_P(SEVERITY_HIGH, PSTR("Fence disabled (autodisable)"));
+            }
+        }
+
+    }
+    
+    flight_stage = fs;
+}
 
 static void update_alt()
 {
@@ -1366,16 +1385,16 @@ static void update_alt()
     geofence_check(true);
 
     // Update the speed & height controller states
-    if (auto_throttle_mode && !throttle_suppressed) {
-        AP_SpdHgtControl::FlightStage flight_stage = AP_SpdHgtControl::FLIGHT_NORMAL;
-        
+    if (auto_throttle_mode && !throttle_suppressed) {        
         if (control_mode==AUTO) {
             if (takeoff_complete == false) {
-                flight_stage = AP_SpdHgtControl::FLIGHT_TAKEOFF;
+                update_flight_stage(AP_SpdHgtControl::FLIGHT_TAKEOFF);
             } else if (nav_command_ID == MAV_CMD_NAV_LAND && land_complete == true) {
-                flight_stage = AP_SpdHgtControl::FLIGHT_LAND_FINAL;
+                update_flight_stage(AP_SpdHgtControl::FLIGHT_LAND_FINAL);
             } else if (nav_command_ID == MAV_CMD_NAV_LAND) {
-                flight_stage = AP_SpdHgtControl::FLIGHT_LAND_APPROACH; 
+                update_flight_stage(AP_SpdHgtControl::FLIGHT_LAND_APPROACH); 
+            } else {
+                update_flight_stage(AP_SpdHgtControl::FLIGHT_NORMAL);
             }
         }
 

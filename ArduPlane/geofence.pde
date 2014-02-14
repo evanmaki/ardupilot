@@ -5,17 +5,6 @@
  */
 
 #if GEOFENCE_ENABLED == ENABLED
-
-/*
- * The cause for the most recent fence enable
- */
-enum GeofenceEnableReason {
-    NOT_ENABLED = 0,        //The fence is not enabled
-    PWM_ENABLED,            //Fence enabled by PWM signal on FENCE_CHANNEL
-    AUTO_ENABLED,           //Fence auto enabled at takeoff.
-    GCS_ENABLED             //Fence enabled by the GCS via Mavlink
-};
-
 /*
  *  The state of geo-fencing. This structure is dynamically allocated
  *  the first time it is used. This means we only pay for the pointer
@@ -32,6 +21,7 @@ static struct GeofenceState {
     bool is_pwm_enabled;          //true if above FENCE_ENABLE_PWM threshold
     bool previous_is_pwm_enabled; //true if above FENCE_ENALBE_PWM threshold
                                   // last time we checked
+    bool is_enabled;
     GeofenceEnableReason enable_reason;
     uint16_t breach_count;
     uint8_t breach_type;
@@ -159,13 +149,29 @@ static void geofence_update_pwm_enabled_state() {
         geofence_state->is_pwm_enabled = false;
     } else {
         geofence_state->is_pwm_enabled = 
-            (hal.rcin->read(g.fence_channel-1) < FENCE_ENABLE_PWM);
+            (hal.rcin->read(g.fence_channel-1) > FENCE_ENABLE_PWM);
     }
 
     if (geofence_state->is_pwm_enabled == true && 
             geofence_state->previous_is_pwm_enabled == false) {
-        geofence_state->enable_reason = PWM_ENABLED;
+        geofence_set_enabled(true, PWM_TOGGLED);
+
+    } else if (geofence_state->is_pwm_enabled == false &&
+                geofence_state->previous_is_pwm_enabled == true) {
+        geofence_set_enabled(false, PWM_TOGGLED);
+    }    
+}
+
+//return true on success, false on failure
+static bool geofence_set_enabled(bool enable, GeofenceEnableReason r) {
+    if (geofence_state == NULL) {
+        return false;
     }
+
+    geofence_state->is_enabled = enable;
+    geofence_state->enable_reason = r;
+    
+    return true;
 }
 
 /*
@@ -176,10 +182,9 @@ static bool geofence_enabled(void)
     geofence_update_pwm_enabled_state();
 
     if (g.fence_action == FENCE_ACTION_NONE ||
-        g.fence_total < 5 ||
+        !geofence_present() ||
         (g.fence_action != FENCE_ACTION_REPORT &&
-            (geofence_state != NULL && geofence_state->is_pwm_enabled &&
-             geofence_state->enable_reason == PWM_ENABLED))) {
+            (geofence_state != NULL && !geofence_state->is_enabled))) {
         // geo-fencing is disabled
         if (geofence_state != NULL) {
             // re-arm for when the channel trigger is switched on
@@ -231,9 +236,8 @@ static void geofence_check(bool altitude_check_only)
         // GUIDED to the return point
         if (geofence_state != NULL &&
             (g.fence_action == FENCE_ACTION_GUIDED || g.fence_action == FENCE_ACTION_GUIDED_THR_PASS) &&
-            g.fence_channel != 0 &&
             control_mode == GUIDED &&
-            g.fence_total >= 5 &&
+            geofence_present() &&
             geofence_state->boundary_uptodate &&
             geofence_state->old_switch_position == oldSwitchPosition &&
             guided_WP.lat == geofence_state->boundary[0].x &&

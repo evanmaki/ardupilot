@@ -1348,6 +1348,24 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             }
             break;
 
+        case MAV_CMD_DO_FENCE_ENABLE:
+            result = MAV_RESULT_ACCEPTED;
+            
+            if (!geofence_present()) {
+                result = MAV_RESULT_FAILED;
+            } else {
+                if (packet.param1 == 0) {
+                    if (! geofence_set_enabled(false, GCS_TOGGLED)) {
+                        result = MAV_RESULT_FAILED;
+                    }
+                } else {
+                    if (! geofence_set_enabled(true, GCS_TOGGLED)) {
+                        result = MAV_RESULT_FAILED; 
+                    }
+                }
+            }
+            break;
+
         default:
             break;
         }
