@@ -359,6 +359,7 @@ static bool usb_connected;
 // This is the state of the flight control system
 // There are multiple states defined such as MANUAL, FBW-A, AUTO
 static enum FlightMode control_mode  = INITIALISING;
+static enum FlightMode previous_mode = INITIALISING;
 
 // Used to maintain the state of the previous control switch position
 // This is set to 254 when we need to re-read the switch

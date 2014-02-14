@@ -286,6 +286,10 @@ static void startup_ground(void)
     gcs_send_text_P(SEVERITY_LOW,PSTR("\n\n Ready to FLY."));
 }
 
+static enum FlightMode get_previous_mode() {
+    return previous_mode; 
+}
+
 static void set_mode(enum FlightMode mode)
 {
     if(control_mode == mode) {
@@ -295,6 +299,7 @@ static void set_mode(enum FlightMode mode)
     if(g.auto_trim > 0 && control_mode == MANUAL)
         trim_control_surfaces();
 
+    previous_mode = control_mode;
     control_mode = mode;
 
     switch(control_mode)
