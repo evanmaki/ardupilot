@@ -329,6 +329,7 @@ static bool verify_takeoff()
         takeoff_complete = true;
         next_WP = prev_WP = current_loc;
 
+#if GEOFENCE_ENABLED == ENABLED
         if (g.fence_autoenable == 1) {
             if (! geofence_set_enabled(true, AUTO_TOGGLED)) {
                 gcs_send_text_P(SEVERITY_HIGH, PSTR("Enable fence failed (cannot autoenable"));
@@ -336,6 +337,7 @@ static bool verify_takeoff()
                 gcs_send_text_P(SEVERITY_HIGH, PSTR("Fence enabled. (autoenabled)"));
             }
         }
+#endif
 
         return true;
     } else {

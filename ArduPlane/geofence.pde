@@ -404,4 +404,16 @@ static bool geofence_enabled(void) {
     return false;
 }
 
+static bool geofence_present(void) {
+    return false;
+}
+
+static bool geofence_set_enabled(bool enable, GeofenceEnableReason r) {
+    return false;
+}
+
+bool geofence_breached(void) {
+    return false;
+}
+
 #endif // GEOFENCE_ENABLED

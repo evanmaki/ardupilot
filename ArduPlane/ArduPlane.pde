@@ -1355,6 +1355,7 @@ static void update_flight_stage(AP_SpdHgtControl::FlightStage fs) {
     if (fs == AP_SpdHgtControl::FLIGHT_LAND_APPROACH &&
             flight_stage != AP_SpdHgtControl::FLIGHT_LAND_APPROACH) {
 
+#if GEOFENCE_ENABLED == ENABLED 
         if (g.fence_autoenable == 1) {
             if (! geofence_set_enabled(false, AUTO_TOGGLED)) {
                 gcs_send_text_P(SEVERITY_HIGH, PSTR("Disable fence failed (autodisable)"));
@@ -1362,6 +1363,7 @@ static void update_flight_stage(AP_SpdHgtControl::FlightStage fs) {
                 gcs_send_text_P(SEVERITY_HIGH, PSTR("Fence disabled (autodisable)"));
             }
         }
+#endif
 
     }
     
