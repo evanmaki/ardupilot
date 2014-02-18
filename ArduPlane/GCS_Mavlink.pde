@@ -2218,6 +2218,10 @@ mission_failed:
             // the buffer has enough space, speed up a bit
             stream_slowdown--;
         }
+
+        Log_Radio(packet.rssi, packet.remrssi, packet.txbuf, packet.noise,
+                  packet.remnoise, packet.rxerrors, packet.fixed);
+
         break;
     }
 

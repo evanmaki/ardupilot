@@ -460,6 +460,35 @@ static void Log_Arm_Disarm() {
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
 }
 
+struct PACKED log_Radio {
+    LOG_PACKET_HEADER;
+    uint32_t time_ms;
+    uint8_t rssi;
+    uint8_t remrssi;
+    uint8_t txbuf;
+    uint8_t noise;
+    uint8_t remnoise;
+    uint16_t rxerrors;
+    uint16_t fixed;
+};
+
+static void Log_Radio(uint8_t _rssi, uint8_t _remrssi, uint8_t _txbuf,
+                      uint8_t _noise, uint8_t _remnoise, 
+                      uint16_t _rxerrors, uint16_t _fixed) {
+    struct log_Radio pkt = {
+       LOG_PACKET_HEADER_INIT(LOG_RADIO_MSG),
+       time_ms      : hal.scheduler->millis(),
+       rssi         : _rssi,
+       remrssi      : _remrssi,
+       txbuf        : _txbuf,
+       noise        : _noise,
+       remnoise     : _remnoise,
+       rxerrors     : _rxerrors,
+       fixed        : _fixed
+    };
+    DataFlash.WriteBlock(&pkt, sizeof(pkt));
+}
+
 struct PACKED log_Compass {
     LOG_PACKET_HEADER;
     uint32_t time_ms;
@@ -582,6 +611,8 @@ static const struct LogStructure log_structure[] PROGMEM = {
       "ARM", "IHB", "TimeMS,ArmState,ArmChecks" },
     { LOG_AIRSPEED_MSG, sizeof(log_AIRSPEED),
       "ARSP",  "Iffc",     "TimeMS,Airspeed,DiffPress,Temp" },
+    { LOG_RADIO_MSG, sizeof(log_Radio),
+      "RAD", "IBBBBBHH", "TimeMS,RSSI,RemRSSI,TxBuf,Noise,RemNoise,RxErrors,Fixed" }, 
     TECS_LOG_FORMAT(LOG_TECS_MSG),
 };
 
