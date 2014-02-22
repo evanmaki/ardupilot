@@ -387,6 +387,9 @@
                <entry value="524288" name="MAV_SYS_STATUS_SENSOR_3D_MAG2">
                     <description>0x80000 2nd 3D magnetometer</description>
                </entry>
+               <entry value="1048576" name="MAV_SYS_STATUS_GEOFENCE">
+                    <description>0x100000 geofence</description>
+               </entry>
           </enum>
           <enum name="MAV_FRAME">
                <entry value="0" name="MAV_FRAME_GLOBAL">
@@ -704,7 +707,7 @@
                     <param index="3">Ground pressure: 0: no, 1: yes</param>
                     <param index="4">Radio calibration: 0: no, 1: yes</param>
                     <param index="5">Accelerometer calibration: 0: no, 1: yes</param>
-                    <param index="6">Empty</param>
+                    <param index="6">Compass/Motor interference calibration: 0: no, 1: yes</param>
                     <param index="7">Empty</param>
                </entry>
                <entry value="242" name="MAV_CMD_PREFLIGHT_SET_SENSOR_OFFSETS">
@@ -1255,13 +1258,13 @@
                <field type="uint16_t" name="command">The scheduled action for the MISSION. see MAV_CMD in common.xml MAVLink specs</field>
                <field type="uint8_t" name="current">false:0, true:1</field>
                <field type="uint8_t" name="autocontinue">autocontinue to next wp</field>
-               <field type="float" name="param1">PARAM1 / For NAV command MISSIONs: Radius in which the MISSION is accepted as reached, in meters</field>
-               <field type="float" name="param2">PARAM2 / For NAV command MISSIONs: Time that the MAV should stay inside the PARAM1 radius before advancing, in milliseconds</field>
-               <field type="float" name="param3">PARAM3 / For LOITER command MISSIONs: Orbit to circle around the MISSION, in meters. If positive the orbit direction should be clockwise, if negative the orbit direction should be counter-clockwise.</field>
-               <field type="float" name="param4">PARAM4 / For NAV and LOITER command MISSIONs: Yaw orientation in degrees, [0..360] 0 = NORTH</field>
+               <field type="float" name="param1">PARAM1, see MAV_CMD enum</field>
+               <field type="float" name="param2">PARAM2, see MAV_CMD enum</field>
+               <field type="float" name="param3">PARAM3, see MAV_CMD enum</field>
+               <field type="float" name="param4">PARAM4, see MAV_CMD enum</field>
                <field type="float" name="x">PARAM5 / local: x position, global: latitude</field>
                <field type="float" name="y">PARAM6 / y position: global: longitude</field>
-               <field type="float" name="z">PARAM7 / z position: global: altitude</field>
+               <field type="float" name="z">PARAM7 / z position: global: altitude (relative or absolute, depending on frame.</field>
           </message>
           <message id="40" name="MISSION_REQUEST">
                <description>Request the information of the mission item with the sequence number seq. The response of the system to this message should be a MISSION_ITEM message. http://qgroundcontrol.org/mavlink/waypoint_protocol</description>
@@ -1806,11 +1809,11 @@
            <field type="int16_t" name="zmag">Z Magnetic field (milli tesla)</field>
          </message>
          <message id="117" name="LOG_REQUEST_LIST">
-           <description>Request a list of available logs. On some systems calling this may stop on-board logging until LOG_REQUEST_END is called.</description>
-           <field type="uint8_t" name="target_system">System ID</field>
-           <field type="uint8_t" name="target_component">Component ID</field>
-           <field type="uint16_t" name="start">First log id (0 for first available)</field>
-           <field type="uint16_t" name="end">Last log id (0xffff for last available)</field>
+          <description>Request a list of available logs. On some systems calling this may stop on-board logging until LOG_REQUEST_END is called.</description>
+          <field type="uint8_t" name="target_system">System ID</field>
+          <field type="uint8_t" name="target_component">Component ID</field>
+          <field type="uint16_t" name="start">First log id (0 for first available)</field>
+          <field type="uint16_t" name="end">Last log id (0xffff for last available)</field>
          </message>
          <message id="118" name="LOG_ENTRY">
            <description>Reply to LOG_REQUEST_LIST</description>
@@ -1845,12 +1848,36 @@
            <field type="uint8_t" name="target_system">System ID</field>
            <field type="uint8_t" name="target_component">Component ID</field>
          </message>
-         <message id="125" name="POWER_STATUS">
+	 <message name="GPS_INJECT_DATA" id="123">
+           <description>data for injecting into the onboard GPS (used for DGPS)</description>
+           <field type="uint8_t" name="target_system">System ID</field>
+           <field type="uint8_t" name="target_component">Component ID</field>
+           <field type="uint8_t" name="len">data length</field>
+           <field type="uint8_t[110]" name="data">raw data (110 is enough for 12 satellites of RTCMv2)</field>
+         </message>
+         <message id="124" name="GPS2_RAW">
+           <description>Second GPS data. Coordinate frame is right-handed, Z-axis up (GPS frame).</description>
+           <field type="uint64_t" name="time_usec">Timestamp (microseconds since UNIX epoch or microseconds since system boot)</field>
+           <field type="uint8_t" name="fix_type">0-1: no fix, 2: 2D fix, 3: 3D fix. Some applications will not use the value of this field unless it is at least two, so always correctly fill in the fix.</field>
+           <field type="int32_t" name="lat">Latitude (WGS84), in degrees * 1E7</field>
+           <field type="int32_t" name="lon">Longitude (WGS84), in degrees * 1E7</field>
+           <field type="int32_t" name="alt">Altitude (WGS84), in meters * 1000 (positive for up)</field>
+           <field type="uint16_t" name="eph">GPS HDOP horizontal dilution of position in cm (m*100). If unknown, set to: UINT16_MAX</field>
+           <field type="uint16_t" name="epv">GPS VDOP vertical dilution of position in cm (m*100). If unknown, set to: UINT16_MAX</field>
+           <field type="uint16_t" name="vel">GPS ground speed (m/s * 100). If unknown, set to: UINT16_MAX</field>
+           <field type="uint16_t" name="cog">Course over ground (NOT heading, but direction of movement) in degrees * 100, 0.0..359.99 degrees. If unknown, set to: UINT16_MAX</field>
+           <field type="uint8_t" name="satellites_visible">Number of satellites visible. If unknown, set to 255</field>
+           <field type="uint8_t" name="dgps_numch">Number of DGPS satellites</field>
+           <field type="uint32_t" name="dgps_age">Age of DGPS info</field>
+         </message>
+
+          <message id="125" name="POWER_STATUS">
                <description>Power supply status</description>
                <field type="uint16_t" name="Vcc">5V rail voltage in millivolts</field>
                <field type="uint16_t" name="Vservo">servo rail voltage in millivolts</field>
                <field type="uint16_t" name="flags">power supply status flags (see MAV_POWER_STATUS enum)</field>
-         </message>
+          </message>
+
          <message id="147" name="BATTERY_STATUS">
                <description>Transmitte battery informations for a accu pack.</description>
                <field type="uint8_t" name="accu_id">Accupack ID</field>
@@ -1887,7 +1914,6 @@
                <field type="float" name="rot_y">Rotational Component in y</field>
                <field type="float" name="rot_z">Rotational Component in z</field>
           </message>
-
           <!-- MESSAGE IDs 150 - 240: Space for custom messages in individual projectname_messages.xml files -->
           <message id="249" name="MEMORY_VECT">
                <description>Send raw controller memory. The use of this message is discouraged for normal packets, but a quite efficient way for testing new messages and getting experimental debug output.</description>
