@@ -128,6 +128,9 @@ static bool geofence_enabled(void)
 {
     if (g.fence_action == FENCE_ACTION_NONE ||
         g.fence_total < 5 ||
+#if AP_NPS_ENABLE == TRUE
+        control_mode == MANUAL ||
+#endif
         (g.fence_action != FENCE_ACTION_REPORT &&
          (g.fence_channel == 0 ||
           hal.rcin->read(g.fence_channel-1) < FENCE_ENABLE_PWM))) {
