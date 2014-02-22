@@ -53,6 +53,8 @@
 #include <AP_Airspeed.h>
 
 #include <APM_OBC.h>
+#include <AP_NPS.h>
+
 #include <APM_Control.h>
 #include <AP_AutoTune.h>
 #include <GCS.h>
@@ -108,6 +110,13 @@ AP_HAL::BetterStream* cliSerial;
 
 const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
 
+
+////////////////////////////////////////////////////////////////////////////////
+// NPS failsafe support
+////////////////////////////////////////////////////////////////////////////////
+#if AP_NPS_ENABLE == TRUE
+AP_NPS nps;
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 // the rate we run the main loop at
@@ -737,6 +746,9 @@ static const AP_Scheduler::Task scheduler_tasks[] PROGMEM = {
     { update_alt,             5,   3400 },
     { calc_altitude_error,    5,   1000 },
     { obc_fs_check,           5,   1000 },
+#if AP_NPS_ENABLE == TRUE
+    { nps_fs_check,           5,   1000 },
+#endif //AP_NPS_ENABLE
     { gcs_update,             1,   1700 },
     { gcs_data_stream_send,   1,   3000 },
     { update_events,		  1,   1500 }, // 20
@@ -943,6 +955,15 @@ static void obc_fs_check(void)
 #endif
 }
 
+#if AP_NPS_ENABLE == TRUE
+/* 
+ check for NPS failsafes 
+ */
+static void nps_fs_check() {
+    nps.check(AP_NPS::NPS_FlightMode(control_mode), failsafe.last_heartbeat_ms,
+              g_gps ? g_gps->last_fix_time : 0);
+}
+#endif 
 
 /*
   update aux servo mappings
