@@ -973,6 +973,10 @@ const AP_Param::Info var_info[] PROGMEM = {
     GOBJECT(obc,  "FS_", APM_OBC),
 #endif
 
+#if AP_NPS_ENABLE == TRUE
+    GOBJECT(nps, "NPS_", AP_NPS),
+#endif
+
     AP_VAREND
 };
 

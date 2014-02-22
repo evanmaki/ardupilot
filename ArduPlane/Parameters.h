@@ -110,6 +110,7 @@ public:
 
         // 105: Extra parameters
         k_param_fence_retalt = 105,
+        k_param_nps,
 
         // 110: Telemetry control
         //
