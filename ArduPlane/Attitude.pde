@@ -804,6 +804,13 @@ static void set_servos(void)
         }
 #endif
         
+#if AP_NPS_ENABLE == TRUE
+        //In an emergency, kill throtttle.  
+        if (nps.get_kill_throttle() != 0) {
+            channel_throttle->servo_out = 0;
+        }
+#endif
+
 
         // push out the PWM values
         if (g.mix_mode == 0) {

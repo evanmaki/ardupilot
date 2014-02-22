@@ -183,6 +183,9 @@ static bool geofence_enabled(void)
 
     if (g.fence_action == FENCE_ACTION_NONE ||
         !geofence_present() ||
+#if AP_NPS_ENABLE == TRUE
+        control_mode == MANUAL ||
+#endif
         (g.fence_action != FENCE_ACTION_REPORT &&
             (geofence_state != NULL && !geofence_state->is_enabled))) {
         // geo-fencing is disabled
