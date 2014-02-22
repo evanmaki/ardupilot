@@ -2026,6 +2026,21 @@ mission_failed:
                                      rally_point.alt, rally_point.break_alt, rally_point.land_dir, 
                                      rally_point.flags);
         break;
+    }
+
+    //receive a command to land from a rally point
+    case MAVLINK_MSG_ID_RALLY_LAND_CMD:
+    {
+        uint8_t attempting_to_land = 0;
+
+        if (control_mode == RTL) {
+            best_rally_loc.flags |= LAND_IMMEDIATELY;
+            attempting_to_land = 1;
+        }
+           
+        mavlink_msg_rally_land_cmd_ack_send(chan, msg->sysid, msg->compid, attempting_to_land);
+
+        break;
     }    
 
     case MAVLINK_MSG_ID_PARAM_SET:

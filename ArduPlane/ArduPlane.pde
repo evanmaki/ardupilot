@@ -638,6 +638,14 @@ static struct   Location next_nav_command;
 static struct   Location next_nonnav_command;
 
 ////////////////////////////////////////////////////////////////////////////////
+// 3D location vectors used for auto landing from a rally point
+// Location and RallyLocation structures defined in AP_Common
+////////////////////////////////////////////////////////////////////////////////
+static struct RallyLocation best_rally_loc = {};
+static struct Location best_rally_land_loc = {};
+static int rally_land_wp_idx = -1;
+
+////////////////////////////////////////////////////////////////////////////////
 // Altitude / Climb rate control
 ////////////////////////////////////////////////////////////////////////////////
 // The current desired altitude.  Altitude is linearly ramped between waypoints.  Centimeters
@@ -1157,6 +1165,91 @@ static void handle_auto_mode(void)
 }
 
 /*
+* Main handling for RTL mode
+*/
+static void handle_RTL_mode(void) 
+{
+    // Check Rally flag to see if AutoLand is set true
+    if( BIT_IS_SET(best_rally_loc.flags,1) ) 
+    {
+        static int heading_to_break_alt = 0;
+        int break_alt = (best_rally_loc.break_alt*100UL) + home.alt;
+        
+        //if (current waypoint is a rally point, not a landing point) 
+        if (nav_command_ID != MAV_CMD_NAV_LAND)
+        {
+            //if we haven't found a suitable landing point yet
+            if (rally_land_wp_idx == -1) 
+            {
+                heading_to_break_alt = 0;
+
+                // See if we have a valid landing point in the mission
+                rally_land_wp_idx = find_best_landing_wp(next_WP, best_rally_land_loc);
+                if( rally_land_wp_idx == -1 ) {
+                    gcs_send_text_P(SEVERITY_HIGH,PSTR("Rally Land: No landing waypoint"));
+                    return;
+                }               
+            }
+
+            //time to head for break altitude?
+            if (heading_to_break_alt == 0) 
+            {
+                if(get_distance(current_loc,next_WP)<100.0f)
+                {
+                    next_WP.alt = break_alt;
+                    heading_to_break_alt = 1;
+                }
+            }
+
+            // Check if we're at break_alt +/- 5 meters
+            if( current_loc.alt > break_alt - 500.0 && 
+                current_loc.alt < break_alt + 500.0 ) 
+            { 
+                // Calculate bearing in radians
+                float bearing = (radians( (float)(get_bearing_cd(current_loc,best_rally_land_loc)/100.0) ));
+
+                // Calculate heading
+                float heading = 5000;  
+                //in case compass is dead, start heading with an invalid value 
+                if (compass.read()) 
+                {
+                    const Matrix3f &m = ahrs.get_dcm_matrix();
+                    heading = compass.calculate_heading(m);
+                    compass.null_offsets();
+
+                    //map heading to bearing's coordinate space:
+                    if (heading < 0.0f) {
+                        heading += 2.0f*PI;
+                    }
+                }
+
+                // Check to see if the the plane is heading toward
+                // the landing waypoint 
+                if (fabs(bearing - heading) <= 0.2)
+                {
+                    //Have to remember landing index because the mode change
+                    //to AUTO will case rally_land_wp_idx to be reset (to
+                    //support wave-offs in rally landings) AND I can't call 
+                    //change_command before set_mode because that doesn't
+                    //work when the landing waypoint is the last waypoint in the
+                    //mission (which it often is)
+                    int land_idx = rally_land_wp_idx; 
+
+                    //Switch to "Land" mode 
+                    set_mode(AUTO);
+                    change_command(land_idx);
+
+                    //drop to minimum possible speed.
+                    //NOT WORKING!
+                    g.airspeed_cruise_cm.set(aparm.airspeed_min * 100);
+                    //TODO: how to keep from permanently modifying a parameter? 
+                }
+            } //end if at break alt       
+        } //end if on a rally point
+    }//end if autoland bit is set  
+}
+
+/*
   main flight mode dependent update code 
  */
 static void update_flight_mode(void)
@@ -1178,6 +1271,12 @@ static void update_flight_mode(void)
         break;
 
     case RTL:
+        handle_RTL_mode();
+        calc_nav_roll();
+        calc_nav_pitch();
+        calc_throttle();
+        break;
+
     case LOITER:
     case GUIDED:
         calc_nav_roll();

@@ -428,26 +428,6 @@
             <field name="CompensationZ" type="float">Motor Compensation Z</field>
           </message>
 
-<!-- Coming soon
-      <message name="RALLY_LAND_POINT" id="177"> 
-         <description>A rally landing point.  An aircraft loitering at a rally point may choose one of these points to land at.</description>
-         <field name="target_system" type="uint8_t">System ID</field>      
-	     <field name="target_component" type="uint8_t">Component ID</field>
-	     <field name="idx" type="uint8_t">point index (first point is 0)</field>
-	     <field name="count" type="uint8_t">total number of points (for sanity checking)</field>
-	     <field name="lat" type="int32_t">Latitude of point</field>
-         <field name="lng" type="int32_t">Longitude of point</field>
-         <field name="alt" type="uint16_t">Ground AGL (usually 0)</field>
-     </message>
-
-	   <message name="RALLY_LAND_FETCH_POINT" id="178">
-         <description>Request a current rally land point from MAV</description>
-	     <field name="target_system" type="uint8_t">System ID</field>      
-	     <field name="target_component" type="uint8_t">Component ID</field>
-	     <field name="idx" type="uint8_t">point index (first point is 0)</field>
-      </message>
--->
-
 	  <message name="AHRS2" id="178">
 	    <description>Status of secondary AHRS filter if available</description>
             <field type="float" name="roll">Roll angle (rad)</field>
@@ -456,6 +436,21 @@
             <field type="float" name="altitude">Altitude (MSL)</field>
             <field type="int32_t" name="lat">Latitude in degrees * 1E7</field>
             <field type="int32_t" name="lng">Longitude in degrees * 1E7</field>
-	  </message>
+        </message>
+
+    <message name="RALLY_LAND_CMD" id="179">
+        <description>A message sent from the GCS commanding the plane to auto-land if the plane is loitering at a rally point</description>
+        <field name="target_system" type="uint8_t">System ID</field>
+        <field name="target_component" type="uint8_t">Component ID</field>
+    </message>
+
+    <message name="RALLY_LAND_CMD_ACK" id="180">
+        <description>Acknowledgement sent for a RALLY_LAND_CMD</description>
+        <field name="target_system" type="uint8_t">System ID</field>
+        <field name="target_component" type="uint8_t">Component ID</field>
+        <field name="success" type="uint8_t">Success (1 if command RALLY_LAND_CMD successully executed, 0 otherwise)</field>
+    </message>
+
+
      </messages>
 </mavlink>
