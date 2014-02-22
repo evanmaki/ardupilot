@@ -20,4 +20,4 @@
  *  // 2. HIL_MODE_SENSORS: full sensor simulation
  *
  */
-
+#define AP_NPS_ENABLE TRUE
