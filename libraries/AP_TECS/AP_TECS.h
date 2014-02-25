@@ -66,6 +66,8 @@ public:
 	// log data on internal state of the controller. Called at 10Hz
 	void log_data(DataFlash_Class &dataflash, uint8_t msgid);
 
+    int8_t get_rally_break_tolerance() {return int8_t(_rallyBreakTolerance); }
+
 	// this supports the TECS_* user settable parameters
     static const struct AP_Param::GroupInfo var_info[];
 
@@ -116,6 +118,8 @@ private:
 	AP_Float _spdWeight;
     AP_Float _landThrottle;
     AP_Int8  _landAirspeed;
+    AP_Int8  _rallyPreBreakAirspeed;
+    AP_Int8  _rallyBreakTolerance;
 	
 	// throttle demand in the range from 0.0 to 1.0
     float _throttle_dem;

@@ -117,13 +117,23 @@ const AP_Param::GroupInfo AP_TECS::var_info[] PROGMEM = {
     // @User: User
     AP_GROUPINFO("LAND_ARSPD", 12, AP_TECS, _landAirspeed, -1),
 
-    // @Param; LAND_THR
+    // @Param: LAND_THR
     // @DisplayName: Cruise throttle during landing approach (percentage)
     // @Description: Use this parameter instead of LAND_ASPD if your platform does not have an airspeed sensor.  It is the cruise throttle during landing approach.  If set to -1 or less or if TECS_LAND_ASPD is in use then this value is not used during landing.
     // @Range: -1 to 100
     // @Increment: 0.1
     // @User: User
     AP_GROUPINFO("LAND_THR", 13, AP_TECS, _landThrottle, -1),
+
+    //Comment better later
+    //RAL_PB_SPD
+    //Rally Prebreak speed
+    AP_GROUPINFO("RAL_PB_SPD", 14, AP_TECS, _rallyPreBreakAirspeed, -1),
+
+    //Comment better later ;)
+    //RAL_BRK_TOL
+    //Rally break tolerance angle (degrees)
+    AP_GROUPINFO("RAL_BRK_TOL", 15, AP_TECS, _rallyBreakTolerance, 2),
 
     AP_GROUPEND
 };
@@ -210,9 +220,19 @@ void AP_TECS::_update_speed(void)
            (_flight_stage == FLIGHT_LAND_APPROACH || _flight_stage== FLIGHT_LAND_FINAL)) {
         _TASmax = _landAirspeed;
         _TASmin = _landAirspeed;
+        Debug("Flight land stage: %f", _TASmax);
+    } else if (_rallyPreBreakAirspeed != -1 && _ahrs.airspeed_sensor_enabled() && _flight_stage == FLIGHT_RALLY_PRE_BREAK) {
+       // printf("FLIGHT_RALLY_PRE_BREAK triggered %d", int8_t(_rallyPreBreakAirspeed));
+        Debug("FLIGHT_RALLY_PRE_BREAK triggered %d", int8_t(_rallyPreBreakAirspeed));  
+        Debug("FLIGHT_RALLY_PRE_BREAK triggered %f", _TASmax);  
+        _TASmax = _rallyPreBreakAirspeed;
+        _TASmin = _rallyPreBreakAirspeed;
     } else { //not landing, or not using TECS_LAND_ASPD parameter
         _TASmax   = aparm.airspeed_max * EAS2TAS;
         _TASmin   = aparm.airspeed_min * EAS2TAS;
+        if (_flight_stage == FLIGHT_RALLY_PRE_BREAK) {
+            Debug("We are in FLIGHT_RALLY_PRE_BREAK but not controlling speed.");
+        }
     }
 
     // Reset states of time since last update is too large

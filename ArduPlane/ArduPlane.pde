@@ -1222,10 +1222,11 @@ static void handle_RTL_mode(void)
                 }
             }
 
-            // Check if we're at break_alt +/- 5 meters
-            if( current_loc.alt > break_alt - 500.0 && 
-                current_loc.alt < break_alt + 500.0 ) 
-            { 
+            // Check if we're at break_alt + 5 meters or less
+            // (if we're lower we might be drifting down and don't want
+            // to wait to land any more)
+            if( current_loc.alt < break_alt + 500.0f) 
+            {
                 // Calculate bearing in radians
                 float bearing = (radians( (float)(get_bearing_cd(current_loc,best_rally_land_loc)/100.0) ));
 
@@ -1246,7 +1247,8 @@ static void handle_RTL_mode(void)
 
                 // Check to see if the the plane is heading toward
                 // the landing waypoint 
-                if (fabs(bearing - heading) <= 0.2)
+                float break_tolerance = radians((float) TECS_controller.get_rally_break_tolerance());
+                if (fabs(bearing - heading) <= break_tolerance)
                 {
                     //Have to remember landing index because the mode change
                     //to AUTO will case rally_land_wp_idx to be reset (to
@@ -1515,6 +1517,22 @@ static void update_alt()
                 update_flight_stage(AP_SpdHgtControl::FLIGHT_LAND_FINAL);
             } else if (nav_command_ID == MAV_CMD_NAV_LAND) {
                 update_flight_stage(AP_SpdHgtControl::FLIGHT_LAND_APPROACH); 
+            //Couldn't get RALLY mode (for speed set only at the moment)
+            //to work automatically
+            //} else if (heading_to_break_alt == 1) { //doing a rally landing?
+            //} else if (BIT_IS_SET(best_rally_loc.flags,1)) {
+            //    gcs_send_text_P(SEVERITY_HIGH, PSTR("BIT IS SET"));
+            //    if (rally_land_wp_idx != -1) {
+            //        gcs_send_text_P(SEVERITY_HIGH, PSTR("WP Index != 1"));
+            //       if (get_distance(current_loc,next_WP)<100.0f ) {
+            //        gcs_send_text_P(SEVERITY_HIGH, PSTR("Before last rally pre break condition"));
+            //        if (current_loc.alt < ((best_rally_loc.alt*100UL) + home.alt)) {
+            //            update_flight_stage(AP_SpdHgtControl::FLIGHT_RALLY_PRE_BREAK);
+            //        }
+            //      }
+            //    }
+            //  }
+            
             } else {
                 update_flight_stage(AP_SpdHgtControl::FLIGHT_NORMAL);
             }
