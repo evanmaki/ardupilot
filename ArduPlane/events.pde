@@ -58,7 +58,7 @@ static void failsafe_long_on_event(enum failsafe_state fstype)
     failsafe.state = fstype;
     switch(control_mode)
     {
-#if AP_NPS_ENALBE != TRUE
+#if AP_NPS_ENABLE != TRUE
     case MANUAL:
 #endif
     case STABILIZE:
