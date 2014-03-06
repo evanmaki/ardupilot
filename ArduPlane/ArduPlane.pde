@@ -960,8 +960,40 @@ static void obc_fs_check(void)
  check for NPS failsafes 
  */
 static void nps_fs_check() {
-    nps.check(AP_NPS::NPS_FlightMode(control_mode), failsafe.last_heartbeat_ms,
-              g_gps ? g_gps->last_fix_time : 0);
+    nps.check(AP_NPS::NPS_FlightMode(control_mode), 
+            TECS_controller.get_flight_stage(), failsafe.last_heartbeat_ms,
+            gps.last_fix_time_ms());
+
+    AP_NPS::FailsafeState current_fs_state = nps.get_current_fs_state();
+    switch (current_fs_state) {
+        case AP_NPS::GPS_LONG_FS:
+        case AP_NPS::GPS_SHORT_FS:
+            if (control_mode != MANUAL && control_mode != CIRCLE) {
+                //send alert to GCS
+                if (current_fs_state == AP_NPS::GPS_SHORT_FS) {
+                    gcs_send_text_P(SEVERITY_HIGH,PSTR("GPS failsafe: CIRCLE"));
+                } 
+                set_mode(CIRCLE);
+            }
+
+            if (current_fs_state == AP_NPS::GPS_LONG_FS) {
+                //scream Mayday!
+                gcs_send_text_P(SEVERITY_HIGH,PSTR("GPS lost killing throttle"));
+            }
+            break;
+
+        case AP_NPS::GPS_RECOVERING_FS:
+            if (control_mode == CIRCLE) {
+                //TODO: setting previous mode would be better than assuming AUTO
+                //set_mode(previous_mode);
+                
+                set_mode(AUTO);                
+            }
+            break;
+
+        default:
+            break;
+    }
 }
 #endif 
 

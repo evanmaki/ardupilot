@@ -21,3 +21,4 @@
  *
  */
 
+#define AP_NPS_ENABLE TRUE
