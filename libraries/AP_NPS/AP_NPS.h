@@ -11,6 +11,7 @@
 #define _APM_NPS_H_
 
 #include <AP_Param.h>
+#include <AP_TECS.h>
 
 class AP_NPS {
 public:
@@ -36,6 +37,7 @@ public:
     typedef enum FailsafeState {
         GPS_LONG_FS = 0,
         GPS_SHORT_FS,
+        GPS_RECOVERING_FS,
         SEC_CONTROL_FS,
         BATTERY_CURR_FS,
         BATTERY_VOLT_FS,
@@ -56,8 +58,10 @@ public:
     // essentially setting a bool: if not 0, then DO kill throttle
     void set_kill_throttle(AP_Int8 kt);
 
-    void check(NPS_FlightMode mode, uint32_t last_heartbeat_ms,
-               uint32_t last_gps_fix_ms);
+    void check(NPS_FlightMode mode, AP_SpdHgtControl::FlightStage flight_stage,
+           uint32_t last_heartbeat_ms, uint32_t last_gps_fix_ms);
+
+    FailsafeState get_current_fs_state();
 
 private:
     AP_Int8             _kill_throttle;
