@@ -1419,7 +1419,14 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         // We keep track of the last time we received a heartbeat from
         // our GCS for failsafe purposes
         if (msg->sysid != g.sysid_my_gcs) break;
+
+#if AP_ACS_USE == TRUE
+        //if acs.handle_heartbeat() returns true, then the heartbeat
+        //was from a companion computer, not from a GCS
+        if (! acs.handle_heartbeat(msg)) 
+#endif
         failsafe.last_heartbeat_ms = millis();
+
         break;
     }
 

@@ -21,3 +21,4 @@
  *
  */
 
+#define AP_ACS_USE TRUE

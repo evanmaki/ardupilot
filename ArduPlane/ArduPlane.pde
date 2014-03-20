@@ -81,6 +81,7 @@
 #include <AP_ServoRelayEvents.h>
 
 #include <AP_Rally.h>
+#include <AP_ACS.h>
 
 // Pre-AP_HAL compatibility
 #include "compat.h"
@@ -108,6 +109,12 @@ AP_HAL::BetterStream* cliSerial;
 
 const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
 
+////////////////////////////////////////////////////////////////////////////////
+// Aerial Combat Swarms Support
+///////////////////////////////////////////////////////////////////////////////
+#if AP_ACS_USE == TRUE
+AP_ACS acs;
+#endif //AP_ACS_USE
 
 ////////////////////////////////////////////////////////////////////////////////
 // the rate we run the main loop at
@@ -737,6 +744,9 @@ static const AP_Scheduler::Task scheduler_tasks[] PROGMEM = {
     { update_alt,             5,   3400 },
     { calc_altitude_error,    5,   1000 },
     { obc_fs_check,           5,   1000 },
+#if AP_ACS_USE == TRUE
+    { acs_check,              5,   1000 },
+#endif 
     { gcs_update,             1,   1700 },
     { gcs_data_stream_send,   1,   3000 },
     { update_events,		  1,   1500 }, // 20
@@ -943,6 +953,16 @@ static void obc_fs_check(void)
 #endif
 }
 
+#if AP_ACS_USE == TRUE
+static void acs_check(void) {
+    if (control_mode != MANUAL && ! acs.check()) {
+        if (control_mode != RTL) {
+            set_mode(RTL);
+            gcs_send_text_P(SEVERITY_HIGH, PSTR("No companion computer"));
+        }
+    }
+}
+#endif
 
 /*
   update aux servo mappings

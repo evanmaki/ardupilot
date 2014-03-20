@@ -1031,6 +1031,10 @@ const AP_Param::Info var_info[] PROGMEM = {
     GOBJECTN(ahrs.get_NavEKF(), NavEKF, "EKF_", NavEKF),
 #endif
 
+#if AP_ACS_USE == TRUE
+    GOBJECT(acs, "ACS_", AP_ACS),
+#endif
+
     // @Group: MIS_
     // @Path: ../libraries/AP_Mission/AP_Mission.cpp
     GOBJECT(mission, "MIS_",       AP_Mission),
