@@ -1157,7 +1157,12 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
                 break;
             }
             break;
+        
+        case MAV_CMD_DO_RALLY_LAND:
+            set_mode(RTL);
 
+            lander.preland_init();
+            
         default:
             break;
         }

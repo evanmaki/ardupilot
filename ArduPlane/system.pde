@@ -288,6 +288,11 @@ static void set_mode(enum FlightMode mode)
     if(g.auto_trim > 0 && control_mode == MANUAL)
         trim_control_surfaces();
 
+    //if aborting a rally landing, make sure to clear all landing settings)
+    if(control_mode == RTL && lander.preland_started()) {
+        lander.abort_landing();
+    }
+
     // perform any cleanup required for prev flight mode
     exit_mode(control_mode);
 

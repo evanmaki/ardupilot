@@ -84,6 +84,7 @@
 #include <AP_ServoRelayEvents.h>
 
 #include <AP_Rally.h>
+#include <AP_Land.h>
 
 // Pre-AP_HAL compatibility
 #include "compat.h"
@@ -611,6 +612,9 @@ AP_Mission mission(ahrs,
 #if AP_TERRAIN_AVAILABLE
 AP_Terrain terrain(ahrs, mission, rally);
 #endif
+
+//For more new auto landing method(s) (if desired)
+AP_Land lander(ahrs, compass, TECS_controller, rally, mission);
 
 ////////////////////////////////////////////////////////////////////////////////
 // Outback Challenge Failsafe Support
@@ -1440,6 +1444,27 @@ static void update_navigation()
             loiter.direction = 1;
         }
         update_loiter();
+
+        //see if it's time to start prelanding sequence for rally landing.
+        if (control_mode == RTL && lander.preland_started() 
+                && rally.current_rally_point_exists()) {
+            lander.preland_step_rally_land(rally.get_current_rally_point());
+            if (lander.head_to_break_alt()) {
+                //start descending towards the rally point's break altitude.
+                RallyLocation ralLoc = rally.get_current_rally_point();
+                next_WP_loc.alt = (ralLoc.break_alt*100UL) + ahrs.get_home().alt; 
+                if (lander.arrived_at_break_alt() && 
+                        lander.heading_as_desired_for_landing() &&
+                        lander.speed_as_desired_for_landing()) {
+                    //Done with prelanding for rally landing.  LAND!!
+
+                    //The order of these commands apears to be important.
+                    mission.set_current_cmd(lander.find_nearest_landing_wp_index(current_loc));
+                    set_mode(AUTO);
+                }
+            } 
+        }
+
         break;
 
     case CRUISE:
@@ -1510,6 +1535,12 @@ static void update_flight_stage(void)
                 set_flight_stage(AP_SpdHgtControl::FLIGHT_LAND_FINAL);
             } else if (mission.get_current_nav_cmd().id == MAV_CMD_NAV_LAND) {
                 set_flight_stage(AP_SpdHgtControl::FLIGHT_LAND_APPROACH); 
+            } else {
+                set_flight_stage(AP_SpdHgtControl::FLIGHT_NORMAL);
+            }
+        } else if (control_mode == RTL) { //support for Rally Landings
+            if (lander.head_to_break_alt()) {
+                set_flight_stage(AP_SpdHgtControl::FLIGHT_LAND_APPROACH);
             } else {
                 set_flight_stage(AP_SpdHgtControl::FLIGHT_NORMAL);
             }
