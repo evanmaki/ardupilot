@@ -614,7 +614,7 @@ AP_Terrain terrain(ahrs, mission, rally);
 #endif
 
 //For more new auto landing method(s) (if desired)
-AP_Land lander(ahrs, compass, TECS_controller, rally, mission);
+AP_Land lander(ahrs, compass, TECS_controller, rally, mission, ins);
 
 ////////////////////////////////////////////////////////////////////////////////
 // Outback Challenge Failsafe Support
@@ -1214,6 +1214,15 @@ static void handle_auto_mode(void)
             // during final approach constrain roll to the range
             // allowed for level flight
             nav_roll_cd = constrain_int32(nav_roll_cd, -g.level_roll_limit*100UL, g.level_roll_limit*100UL);
+            
+            // hold pitch constant in final approach
+            nav_pitch_cd = g.land_pitch_cd;
+
+            // if we've touched down then disarm motor
+            if (arming.is_armed() && ! lander.still_vibrating()) {
+                arming.disarm();
+            } 
+
         } else {
             if (!airspeed.use()) {
                 // when not under airspeed control, don't allow
