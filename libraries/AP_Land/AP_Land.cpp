@@ -26,18 +26,21 @@ const AP_Param::GroupInfo AP_Land::var_info[] PROGMEM = {
 };
 
 //constructor
-AP_Land::AP_Land(AP_AHRS &ahrs, Compass &compass, AP_TECS &tecs, AP_Rally &rally, AP_Mission &mission)
+AP_Land::AP_Land(AP_AHRS &ahrs, Compass &compass, AP_TECS &tecs, AP_Rally &rally, AP_Mission &mission, AP_InertialSensor &ins)
     : _ahrs(ahrs)
     , _compass(compass)
     , _tecs(tecs)
     , _rally(rally)
     , _mission(mission)
+    , _ins(ins)
     , _landing_wp_index(-1)
     , _preland_started(false)
     , _head_to_break_alt(false)
     , _land_break_alt_as_desired(false)
     , _land_heading_as_desired(false)
-    , _land_speed_as_desired(false) {
+    , _land_speed_as_desired(false) 
+    , _num_accel_data_points(0) 
+    , _current_accel_idx(0) {
 
     AP_Param::setup_object_defaults(this, var_info);
 }
@@ -49,12 +52,40 @@ void AP_Land::preland_init() {
     _land_break_alt_as_desired = false;
     _land_heading_as_desired = false;
     _land_speed_as_desired = false;
+
+    _num_accel_data_points = 0;
+    _current_accel_idx = 0;
 }
 
 void AP_Land::abort_landing() {
     preland_init();
 
     _preland_started = false;
+}
+
+bool AP_Land::still_vibrating() {
+    Vector3f accels = _ins.get_accel();
+    
+    _x_accel_list[_current_accel_idx] = accels.x;
+    _y_accel_list[_current_accel_idx] = accels.y;
+    _z_accel_list[_current_accel_idx] = accels.z;
+    _current_accel_idx++;
+    _current_accel_idx %= AUTO_DISARM_SAMPLE_SIZE;
+
+    //don't do this test if you don't have enough samples
+    if (_num_accel_data_points < AUTO_DISARM_SAMPLE_SIZE) {
+        _num_accel_data_points++;
+        return true;
+    } 
+
+    //Debug ("Var X: %f Var Y: %f Var Z: %f \n", variance(_x_accel_list), variance(_y_accel_list), variance(_z_accel_list));
+
+    if (variance(_x_accel_list) < 0.001f && variance(_y_accel_list) < 0.001f
+            && variance(_z_accel_list) < 0.001f) {
+        return false;
+    }
+
+    return true;
 }
 
 Location AP_Land::get_location_1km_beyond_land() const {
@@ -196,4 +227,26 @@ bool AP_Land::preland_step_rally_land(const RallyLocation &ral_loc) {
     }
 
     return true;
+}
+
+float AP_Land::variance(const float list[]) const {
+    int i;   
+    float sum,m;  
+    m=mean(list);  
+    sum=0;  
+    for(i=0; i<AUTO_DISARM_SAMPLE_SIZE; i++) {
+        sum+=pow((list[i]-m),2);  
+    }  
+    
+    return (sum / (float) AUTO_DISARM_SAMPLE_SIZE);
+}
+
+float AP_Land::mean(const float list[]) const {
+    int i;  
+    float sum=0;  
+    for(i=0; i<AUTO_DISARM_SAMPLE_SIZE; i++) { 
+        sum=sum+list[i];
+    }
+
+    return (sum / (float)AUTO_DISARM_SAMPLE_SIZE); 
 }

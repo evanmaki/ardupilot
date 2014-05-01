@@ -19,10 +19,13 @@
 #include <AP_Rally.h>
 #include <AP_Mission.h>
 
+#define AUTO_DISARM_SAMPLE_SIZE 150 //150 = 3 seconds worth of data if
+                                    //samples come in at 50 HZ
+
 class AP_Land {
 public:
     AP_Land(AP_AHRS &ahrs, Compass &compass, AP_TECS &tecs, AP_Rally &rally,
-            AP_Mission &mission);
+            AP_Mission &mission, AP_InertialSensor &ins);
     
     uint8_t get_land_wings_level() const { return _land_wing_level; }
 
@@ -39,6 +42,12 @@ public:
     bool preland_started() const { return _preland_started; }
 
     void abort_landing();
+
+    // Continuously called after land_complete == true (in ArduPlane), to see
+    // when the vehicle has stopped vibrating so that we can auto-disarm
+    // the motor for the safety of flight crew (uses accelerometers to 
+    // check for vibration).
+    bool still_vibrating();
 
     Location get_location_1km_beyond_land() const;
 
@@ -63,6 +72,7 @@ protected:
     const AP_TECS& _tecs;
     const AP_Rally& _rally;
     const AP_Mission& _mission;
+    const AP_InertialSensor& _ins;
 
     int16_t _landing_wp_index;
     Location _landing_wp;
@@ -75,6 +85,17 @@ protected:
 
     //parameters
     AP_Int8 _land_wing_level;
+
+    float _x_accel_list[AUTO_DISARM_SAMPLE_SIZE];
+    float _y_accel_list[AUTO_DISARM_SAMPLE_SIZE];
+    float _z_accel_list[AUTO_DISARM_SAMPLE_SIZE];
+    int _num_accel_data_points;
+    int _current_accel_idx;
+
+    //convenience methods
+    float variance(const float list[]) const;
+    float mean(const float list[]) const;
+
 };
 
 #endif //AP_Land_H
