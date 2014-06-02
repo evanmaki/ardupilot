@@ -123,13 +123,20 @@ struct Vector2
     // normalizes this vector
     void    normalize()
     {
-        *this/=length();
+	if (length() != 0.0f) {
+            *this/=length();
+        }
     }
 
     // returns the normalized vector
     Vector2<T>  normalized() const
     {
-        return *this/length();
+	if (length() != 0.0f) {
+            return *this/length();
+	}
+        
+	//length is zero -- can't normalize
+        return *this;        
     }
 
     // reflects this vector about n
