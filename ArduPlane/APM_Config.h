@@ -22,3 +22,4 @@
  */
 
 #define AP_ACS_USE TRUE
+#define AP_NPS_ENABLE TRUE

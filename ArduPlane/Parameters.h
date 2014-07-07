@@ -124,6 +124,7 @@ public:
         k_param_fence_autoenable,
         k_param_fence_ret_rally,
         k_param_acs,
+        k_param_nps,
 
         // 110: Telemetry control
         //

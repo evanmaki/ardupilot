@@ -1043,6 +1043,10 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Path: ../libraries/AP_Rally/AP_Rally.cpp
     GOBJECT(rally,  "RALLY_",       AP_Rally),
 
+#if AP_NPS_ENABLE == TRUE
+    GOBJECT(nps, "NPS_", AP_NPS),
+#endif
+
     AP_VAREND
 };
 

@@ -53,6 +53,8 @@
 #include <AP_Airspeed.h>
 
 #include <APM_OBC.h>
+#include <AP_NPS.h>
+
 #include <APM_Control.h>
 #include <AP_AutoTune.h>
 #include <GCS.h>
@@ -115,6 +117,13 @@ const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
 #if AP_ACS_USE == TRUE
 AP_ACS acs;
 #endif //AP_ACS_USE
+
+////////////////////////////////////////////////////////////////////////////////
+// NPS failsafe support
+////////////////////////////////////////////////////////////////////////////////
+#if AP_NPS_ENABLE == TRUE
+AP_NPS nps;
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 // the rate we run the main loop at
@@ -747,6 +756,9 @@ static const AP_Scheduler::Task scheduler_tasks[] PROGMEM = {
 #if AP_ACS_USE == TRUE
     { acs_check,              5,   1000 },
 #endif 
+#if AP_NPS_ENABLE == TRUE
+    { nps_fs_check,           5,   1000 },
+#endif //AP_NPS_ENABLE
     { gcs_update,             1,   1700 },
     { gcs_data_stream_send,   1,   3000 },
     { update_events,		  1,   1500 }, // 20
@@ -963,6 +975,47 @@ static void acs_check(void) {
     }
 }
 #endif
+#if AP_NPS_ENABLE == TRUE
+/* 
+ check for NPS failsafes 
+ */
+static void nps_fs_check() {
+    nps.check(AP_NPS::NPS_FlightMode(control_mode), 
+            TECS_controller.get_flight_stage(), failsafe.last_heartbeat_ms,
+            gps.last_fix_time_ms());
+
+    AP_NPS::FailsafeState current_fs_state = nps.get_current_fs_state();
+    switch (current_fs_state) {
+        case AP_NPS::GPS_LONG_FS:
+        case AP_NPS::GPS_SHORT_FS:
+            if (control_mode != MANUAL && control_mode != CIRCLE) {
+                //send alert to GCS
+                if (current_fs_state == AP_NPS::GPS_SHORT_FS) {
+                    gcs_send_text_P(SEVERITY_HIGH,PSTR("GPS failsafe: CIRCLE"));
+                } 
+                set_mode(CIRCLE);
+            }
+
+            if (current_fs_state == AP_NPS::GPS_LONG_FS) {
+                //scream Mayday!
+                gcs_send_text_P(SEVERITY_HIGH,PSTR("GPS lost killing throttle"));
+            }
+            break;
+
+        case AP_NPS::GPS_RECOVERING_FS:
+            if (control_mode == CIRCLE) {
+                //TODO: setting previous mode would be better than assuming AUTO
+                //set_mode(previous_mode);
+                
+                set_mode(AUTO);                
+            }
+            break;
+
+        default:
+            break;
+    }
+}
+#endif 
 
 /*
   update aux servo mappings

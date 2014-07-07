@@ -9,7 +9,9 @@ static void failsafe_short_on_event(enum failsafe_state fstype)
     gcs_send_text_P(SEVERITY_LOW, PSTR("Failsafe - Short event on, "));
     switch(control_mode)
     {
+#if AP_NPS_ENABLE != TRUE
     case MANUAL:
+#endif
     case STABILIZE:
     case ACRO:
     case FLY_BY_WIRE_A:
@@ -57,7 +59,9 @@ static void failsafe_long_on_event(enum failsafe_state fstype)
     failsafe.state = fstype;
     switch(control_mode)
     {
+#if AP_NPS_ENABLE != TRUE
     case MANUAL:
+#endif
     case STABILIZE:
     case ACRO:
     case FLY_BY_WIRE_A:
@@ -106,6 +110,10 @@ static void failsafe_short_off_event()
 
 void low_battery_event(void)
 {
+#if AP_NPS_ENABLE == TRUE
+    if (control_mode == MANUAL) return;
+#endif
+
     if (failsafe.low_battery) {
         return;
     }
