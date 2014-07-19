@@ -86,7 +86,8 @@ bool AP_ACS::check(ACS_FlightMode mode,
     //very low altitude into personnel or property)
     if (flight_stage == AP_SpdHgtControl::FLIGHT_TAKEOFF ||
         flight_stage == AP_SpdHgtControl::FLIGHT_LAND_APPROACH || 
-        flight_stage == AP_SpdHgtControl::FLIGHT_LAND_FINAL) {
+        flight_stage == AP_SpdHgtControl::FLIGHT_LAND_FINAL ||
+        flight_stage == AP_SpdHgtControl::FLIGHT_LAND_GO_AROUND) {
         _current_fs_state = NO_FS;
         return false;
     }
