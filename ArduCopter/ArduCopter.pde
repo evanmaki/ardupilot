@@ -152,6 +152,7 @@
 #if PARACHUTE == ENABLED
 #include <AP_Parachute.h>		// Parachute release library
 #endif
+#include <AP_Terrain.h>
 
 // AP_HAL to Arduino compatibility layer
 #include "compat.h"
@@ -413,6 +414,7 @@ static struct {
     uint8_t battery             : 1; // 2   // A status flag for the battery failsafe
     uint8_t gps                 : 1; // 3   // A status flag for the gps failsafe
     uint8_t gcs                 : 1; // 4   // A status flag for the ground station failsafe
+    uint8_t ekf                 : 1; // 5   // true if ekf failsafe has occurred
 
     int8_t radio_counter;                  // number of iterations with throttle below throttle_fs_value
 
@@ -729,6 +731,12 @@ static AP_Parachute parachute(relay);
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
+// terrain handling
+#if AP_TERRAIN_AVAILABLE
+AP_Terrain terrain(ahrs);
+#endif
+
+////////////////////////////////////////////////////////////////////////////////
 // Nav Guided - allows external computer to control the vehicle during missions
 ////////////////////////////////////////////////////////////////////////////////
 #if NAV_GUIDED == ENABLED
@@ -786,6 +794,7 @@ static const AP_Scheduler::Task scheduler_tasks[] PROGMEM = {
 #endif
     { update_notify,         8,     10 },
     { one_hz_loop,         400,     42 },
+    { ekf_check,            40,      2 },
     { crash_check,          40,      2 },
     { gcs_check_input,	     8,    550 },
     { gcs_send_heartbeat,  400,    150 },
@@ -850,6 +859,7 @@ static const AP_Scheduler::Task scheduler_tasks[] PROGMEM = {
 #endif
     { update_notify,         2,     100 },
     { one_hz_loop,         100,     420 },
+    { ekf_check,            10,      20 },
     { crash_check,          10,      20 },
     { gcs_check_input,	     2,     550 },
     { gcs_send_heartbeat,  100,     150 },
@@ -1174,6 +1184,10 @@ static void one_hz_loop()
 #endif
 
     check_usb_mux();
+
+#if AP_TERRAIN_AVAILABLE
+    terrain.update();
+#endif
 }
 
 // called at 100hz but data from sensor only arrives at 20 Hz

@@ -116,6 +116,8 @@ public:
         k_param_takeoff_throttle_slewrate,
         k_param_takeoff_throttle_max,
         k_param_sonar,
+        k_param_terrain,
+        k_param_terrain_follow,
 
         // 100: Arming parameters
         k_param_arming = 100,
@@ -444,6 +446,9 @@ public:
     AP_Int8 level_roll_limit;
     AP_Int8 flapin_channel;
     AP_Int8 flaperon_output;
+#if AP_TERRAIN_AVAILABLE
+    AP_Int8 terrain_follow;
+#endif
 
     // RC channels
     RC_Channel rc_1;
