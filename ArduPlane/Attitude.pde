@@ -751,9 +751,9 @@ static void set_servos(void)
             channel_pitch->radio_out =     elevon.trim2 + (BOOL_TO_SIGN(g.reverse_ch2_elevon) * (ch2 * 500.0f/ SERVO_MAX));
         }
 
-#if AP_NPS_ENABLE == TRUE
+#if AP_ACS_USE == TRUE
         //In an emergency, kill throtttle.  
-        if (nps.get_kill_throttle() != 0) {
+        if (acs.get_kill_throttle() != 0) {
             channel_throttle->servo_out = 0;
         }
 #endif

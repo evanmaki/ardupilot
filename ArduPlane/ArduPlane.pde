@@ -975,37 +975,39 @@ static void acs_check() {
             gps.last_fix_time_ms());
 
     AP_ACS::FailsafeState current_fs_state = acs.get_current_fs_state();
-    switch (current_fs_state) {
-        case AP_ACS::GPS_LONG_FS:
-        case AP_ACS::GPS_SHORT_FS:
-            if (control_mode != MANUAL && control_mode != CIRCLE) {
-                //send alert to GCS
-                if (current_fs_state == AP_ACS::GPS_SHORT_FS) {
-                    gcs_send_text_P(SEVERITY_HIGH,PSTR("GPS failsafe: CIRCLE"));
-                } 
-                set_mode(CIRCLE);
-            }
+    if (control_mode != MANUAL) {
+        switch (current_fs_state) {
+            case AP_ACS::GPS_LONG_FS:
+            case AP_ACS::GPS_SHORT_FS:
+                if (control_mode != MANUAL && control_mode != CIRCLE) {
+                    //send alert to GCS
+                    if (current_fs_state == AP_ACS::GPS_SHORT_FS) {
+                        gcs_send_text_P(SEVERITY_HIGH,PSTR("GPS failsafe: CIRCLE"));
+                    } 
+                    set_mode(CIRCLE);
+                }
 
-            if (current_fs_state == AP_ACS::GPS_LONG_FS) {
-                //scream Mayday!
-                gcs_send_text_P(SEVERITY_HIGH,PSTR("GPS lost killing throttle"));
-            }
-            break;
+                if (current_fs_state == AP_ACS::GPS_LONG_FS) {
+                    //scream Mayday!
+                    gcs_send_text_P(SEVERITY_HIGH,PSTR("GPS lost killing throttle"));
+                }
+                break;
 
-        case AP_ACS::GPS_RECOVERING_FS:
-            if (control_mode == CIRCLE) {
-                set_mode((FlightMode) acs.get_previous_mode());                
-            }
-            break;
+            case AP_ACS::GPS_RECOVERING_FS:
+                if (control_mode == CIRCLE) {
+                    set_mode((FlightMode) acs.get_previous_mode());
+                }
+                break;
 
-        case AP_ACS::NO_COMPANION_COMPUTER_FS:
-            set_mode(RTL);
-            gcs_send_text_P(SEVERITY_HIGH, PSTR("No companion computer"));
-            break;
+            case AP_ACS::NO_COMPANION_COMPUTER_FS:
+                set_mode(RTL);
+                gcs_send_text_P(SEVERITY_HIGH, PSTR("No companion computer"));
+                break;
 
-        default:
-            break;
-    }
+            default:
+                break;
+        } //switch
+    }// if not in manual control mode
 }
 #endif //AP_ACS_USE
 
