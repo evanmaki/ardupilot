@@ -14,7 +14,9 @@ static void failsafe_short_on_event(enum failsafe_state fstype)
 #endif
     case STABILIZE:
     case ACRO:
+#if AP_ACS_USE != TRUE
     case FLY_BY_WIRE_A:
+#endif
     case AUTOTUNE:
     case FLY_BY_WIRE_B:
     case CRUISE:
@@ -64,7 +66,9 @@ static void failsafe_long_on_event(enum failsafe_state fstype)
 #endif
     case STABILIZE:
     case ACRO:
+#if AP_ACS_USE != TRUE
     case FLY_BY_WIRE_A:
+#endif
     case AUTOTUNE:
     case FLY_BY_WIRE_B:
     case CRUISE:
@@ -111,7 +115,7 @@ static void failsafe_short_off_event()
 void low_battery_event(void)
 {
 #if AP_ACS_USE == TRUE
-    if (control_mode == MANUAL) return;
+    if (control_mode == MANUAL || control_mode == FLY_BY_WIRE_A) return;
 #endif
 
     if (failsafe.low_battery) {
