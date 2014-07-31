@@ -728,7 +728,7 @@ const AP_Param::GroupInfo GCS_MAVLINK::var_info[] PROGMEM = {
     // @Increment: 1
     // @User: Advanced
     AP_GROUPINFO("EXTRA3",   7, GCS_MAVLINK, streamRates[7],  1),
-
+    
     // @Param: PARAMS
     // @DisplayName: Parameter stream rate to ground station
     // @Description: Parameter stream rate to ground station
@@ -749,6 +749,10 @@ bool GCS_MAVLINK::stream_trigger(enum streams stream_num)
     }
     float rate = (uint8_t)streamRates[stream_num].get();
 
+    // Further reduces the rate at which we send msgs down
+
+
+
     // send at a much lower rate while handling waypoints and
     // parameter sends
     if ((stream_num != STREAM_PARAMS) && 
@@ -761,6 +765,16 @@ bool GCS_MAVLINK::stream_trigger(enum streams stream_num)
     }
 
     if (stream_ticks[stream_num] == 0) {
+        if (joystick.get_enabled()) {
+            // mavlink_delay needs to be multiplied by 50
+            // so that it will actually delay by the specified time
+            // since were running at 50 hz.
+            stream_ticks[stream_num] = (int)(joystick.get_mavlink_delay()*50.0f);
+            printf("ticks: %d",stream_ticks[stream_num]);
+            
+            return true;
+
+        }
         // we're triggering now, setup the next trigger point
         if (rate > 50) {
             rate = 50;
@@ -812,6 +826,27 @@ GCS_MAVLINK::data_stream_send(void)
 
     if (gcs_out_of_time) return;
 
+    if (joystick.get_enabled()) {
+        if (stream_trigger(STREAM_EXTENDED_STATUS)) {
+            send_message(MSG_EXTENDED_STATUS1);
+            send_message(MSG_CURRENT_WAYPOINT);
+            send_message(MSG_FENCE_STATUS);
+        }
+        if (gcs_out_of_time) return;
+
+        if (stream_trigger(STREAM_RAW_CONTROLLER)) {
+            send_message(MSG_SERVO_OUT);
+        }
+
+        if (gcs_out_of_time) return;
+
+        if (stream_trigger(STREAM_RC_CHANNELS)) {
+            send_message(MSG_RADIO_OUT);
+            send_message(MSG_RADIO_IN);
+        }
+        return;
+    }
+    
     if (stream_trigger(STREAM_RAW_SENSORS)) {
         send_message(MSG_RAW_IMU1);
         send_message(MSG_RAW_IMU2);
@@ -934,6 +969,10 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         send_text_P(SEVERITY_LOW,PSTR("command received: "));
 
         switch(packet.command) {
+
+        case MAV_CMD_DO_JOYSTICK_OPTIMIZED:
+            joystick.set_enabled(packet.param1);
+            break;
 
         case MAV_CMD_NAV_LOITER_UNLIM:
             set_mode(LOITER);
@@ -1364,6 +1403,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         // a RC override message is consiered to be a 'heartbeat' from
         // the ground station for failsafe purposes
         failsafe.last_heartbeat_ms = millis();
+        joystick.set_last_heartbeat_ms(failsafe.last_heartbeat_ms);
         break;
     }
 
@@ -1379,6 +1419,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         if (! acs.handle_heartbeat(msg)) 
 #endif
         failsafe.last_heartbeat_ms = millis();
+        joystick.set_last_heartbeat_ms(failsafe.last_heartbeat_ms);
 
         break;
     }

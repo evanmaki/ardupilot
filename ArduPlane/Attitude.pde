@@ -758,6 +758,10 @@ static void set_servos(void)
         }
 #endif
 
+        if (joystick.get_enabled() && joystick.check_failsafe_ok() != true and joystick.get_failsafe_action() == AP_Joystick::KILL_THROTTLE ) {
+            channel_throttle->servo_out = 0;
+        }
+
 
         // push out the PWM values
         if (g.mix_mode == 0) {

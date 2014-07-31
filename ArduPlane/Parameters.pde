@@ -1058,6 +1058,10 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Path: ../libraries/AP_Rally/AP_Rally.cpp
     GOBJECT(rally,  "RALLY_",       AP_Rally),
 
+    // @Group: JS_
+    // @Path: ../libraries/AP_Joystick/AP_Joystick.cpp
+    GOBJECT(joystick, "JS_",        AP_Joystick),
+
     AP_VAREND
 };
 

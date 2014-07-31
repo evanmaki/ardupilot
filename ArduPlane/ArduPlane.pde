@@ -85,6 +85,8 @@
 #include <AP_Rally.h>
 #include <AP_ACS.h>
 
+#include <AP_Joystick.h>
+
 // Pre-AP_HAL compatibility
 #include "compat.h"
 
@@ -325,6 +327,9 @@ static AP_Camera camera(&relay);
 
 //Rally Ponints
 AP_Rally rally(ahrs, MAX_RALLYPOINTS, RALLY_START_BYTE);
+
+//Joystick (used when optimized link for joystick use)
+AP_Joystick joystick;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Global variables
