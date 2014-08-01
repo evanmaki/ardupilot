@@ -43,7 +43,7 @@ bool AP_Joystick::check_failsafe_ok() {
         return true;
     }
 
-    if (hal.scheduler->millis() - _last_heartbeat_ms > (_failsafe_timeout * 1000u)) {
+    if (hal.scheduler->millis() - _last_heartbeat_ms > (_failsafe_timeout * 1000U)) {
         return false;
     }
 
