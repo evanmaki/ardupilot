@@ -253,6 +253,9 @@ private:
     uint32_t        waypoint_timelast_request; // milliseconds
     const uint16_t  waypoint_receive_timeout; // milliseconds
 
+    // delay for sending packets when in joystick optimized
+    AP_Float        joystick_delay;
+
     // saveable rate of each stream
     AP_Int16        streamRates[NUM_STREAMS];
 
