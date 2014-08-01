@@ -85,6 +85,8 @@
 #include <AP_Rally.h>
 #include <AP_ACS.h>
 
+#include <AP_Joystick.h>
+
 // Pre-AP_HAL compatibility
 #include "compat.h"
 
