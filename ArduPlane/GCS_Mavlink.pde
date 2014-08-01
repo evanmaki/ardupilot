@@ -829,7 +829,7 @@ GCS_MAVLINK::data_stream_send(void)
     if (joystick.get_enabled()) {
         if (stream_trigger(STREAM_EXTENDED_STATUS)) {
             send_message(MSG_EXTENDED_STATUS1);
-            send_message(MSG_CURRENT_WAYPOINT);
+            send_message(MSG_VFR_HUD);
             send_message(MSG_FENCE_STATUS);
         }
         if (gcs_out_of_time) return;
@@ -971,6 +971,12 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         switch(packet.command) {
 
         case MAV_CMD_DO_JOYSTICK_OPTIMIZED:
+            if(packet.param1 == 0) {
+                set_mode(AUTO);
+            }
+            else if(packet.param1 == 1) {
+                set_mode(FLY_BY_WIRE_A);
+            }
             joystick.set_enabled(packet.param1);
             break;
 

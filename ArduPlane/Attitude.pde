@@ -754,12 +754,14 @@ static void set_servos(void)
 #if AP_ACS_USE == TRUE
         //In an emergency, kill throtttle.  
         if (acs.get_kill_throttle() != 0) {
-            channel_throttle->servo_out = 0;
+            gcs_send_text_P(SEVERITY_LOW,PSTR("ACS COMMANDED: killing throttle"));
+            channel_throttle->servo_out = aparm.throttle_min.get();
         }
 #endif
 
-        if (joystick.get_enabled() && joystick.check_failsafe_ok() != true and joystick.get_failsafe_action() == AP_Joystick::KILL_THROTTLE ) {
-            channel_throttle->servo_out = 0;
+        if (joystick.get_failsafe_action() == AP_Joystick::KILL_THROTTLE && joystick.get_enabled() && joystick.check_failsafe_ok() != true ) {
+            gcs_send_text_P(SEVERITY_LOW, PSTR("LOST TELEMETRY LINK DURING JOYSTICK: killing throttle"));
+            channel_throttle->servo_out = aparm.throttle_min.get();
         }
 
 
