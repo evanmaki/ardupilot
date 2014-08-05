@@ -770,7 +770,6 @@ bool GCS_MAVLINK::stream_trigger(enum streams stream_num)
             // so that it will actually delay by the specified time
             // since were running at 50 hz.
             stream_ticks[stream_num] = (int)(joystick.get_mavlink_delay()*50.0f);
-            printf("ticks: %d",stream_ticks[stream_num]);
             
             return true;
 
