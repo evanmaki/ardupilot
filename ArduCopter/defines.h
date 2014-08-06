@@ -133,7 +133,7 @@
 #define CH6_OPTFLOW_KD                  19  // optical flow loiter controller's D term (position error to tilt angle)
 #define CH6_AHRS_YAW_KP                 30  // ahrs's compass effect on yaw angle (0 = very low, 1 = very high)
 #define CH6_AHRS_KP                     31  // accelerometer effect on roll/pitch angle (0=low)
-#define CH6_INAV_TC                     32  // inertial navigation baro/accel and gps/accel time constant (1.5 = strong baro/gps correction on accel estimatehas very strong does not correct accel estimate, 7 = very weak correction)
+#define CH6_INAV_TC                     32  // deprecated -- remove
 #define CH6_DECLINATION                 38  // compass declination in radians
 #define CH6_CIRCLE_RATE                 39  // circle turn rate in degrees (hard coded to about 45 degrees in either direction)
 #define CH6_SONAR_GAIN                  41  // sonar gain
@@ -193,6 +193,7 @@ enum AutoMode {
 
 // Guided modes
 enum GuidedMode {
+    Guided_TakeOff,
     Guided_WP,
     Guided_Velocity
 };
@@ -348,6 +349,7 @@ enum FlipState {
 #define ERROR_SUBSYSTEM_PARACHUTE           15
 #define ERROR_SUBSYSTEM_EKF_CHECK           16
 #define ERROR_SUBSYSTEM_FAILSAFE_EKF        17
+#define ERROR_SUBSYSTEM_BARO                18
 // general error codes
 #define ERROR_CODE_ERROR_RESOLVED           0
 #define ERROR_CODE_FAILED_TO_INITIALISE     1
@@ -374,6 +376,8 @@ enum FlipState {
 // EKF check definitions
 #define ERROR_CODE_EKF_CHECK_BAD_COMPASS    2
 #define ERROR_CODE_EKF_CHECK_BAD_COMPASS_CLEARED    0
+// Baro specific error codes
+#define ERROR_CODE_BARO_GLITCH              2
 
 // Arming Check Enable/Disable bits
 #define ARMING_CHECK_NONE                   0x00
@@ -402,5 +406,12 @@ enum FlipState {
 #define FS_GPS_LAND                         1       // switch to LAND mode on GPS Failsafe
 #define FS_GPS_ALTHOLD                      2       // switch to ALTHOLD mode on GPS failsafe
 #define FS_GPS_LAND_EVEN_STABILIZE          3       // switch to LAND mode on GPS failsafe even if in a manual flight mode like Stabilize
+
+
+enum Serial2Protocol {
+    SERIAL2_MAVLINK     = 1,
+    SERIAL2_FRSKY_DPORT = 2,
+    SERIAL2_FRSKY_SPORT = 3 // not supported yet
+};
 
 #endif // _DEFINES_H

@@ -14,7 +14,7 @@ static bool	gcs_out_of_time;
 
 
 // check if a message will fit in the payload space available
-#define CHECK_PAYLOAD_SIZE(id) if (payload_space < MAVLINK_MSG_ID_ ## id ## _LEN) return false
+#define CHECK_PAYLOAD_SIZE(id) if (txspace < MAVLINK_NUM_NON_PAYLOAD_BYTES+MAVLINK_MSG_ID_ ## id ## _LEN) return false
 
 // prototype this for use inside the GCS class
 static void gcs_send_text_fmt(const prog_char_t *fmt, ...);
@@ -375,27 +375,18 @@ static void NOINLINE send_servo_out(mavlink_channel_t chan)
 
 static void NOINLINE send_radio_out(mavlink_channel_t chan)
 {
-    uint8_t i;
-    uint16_t rcout[8];
-    hal.rcout->read(rcout,8);
-    // clear out unreasonable values
-    for (i=0; i<8; i++) {
-        if (rcout[i] > 10000) {
-            rcout[i] = 0;
-        }
-    }
     mavlink_msg_servo_output_raw_send(
         chan,
         micros(),
-        0, // port
-        rcout[0],
-        rcout[1],
-        rcout[2],
-        rcout[3],
-        rcout[4],
-        rcout[5],
-        rcout[6],
-        rcout[7]);
+        0,     // port
+        hal.rcout->read(0),
+        hal.rcout->read(1),
+        hal.rcout->read(2),
+        hal.rcout->read(3),
+        hal.rcout->read(4),
+        hal.rcout->read(5),
+        hal.rcout->read(6),
+        hal.rcout->read(7));
 }
 
 static void NOINLINE send_vfr_hud(mavlink_channel_t chan)
@@ -458,7 +449,7 @@ static bool telemetry_delayed(mavlink_channel_t chan)
 // try to send a message, return false if it won't fit in the serial tx buffer
 bool GCS_MAVLINK::try_send_message(enum ap_message id)
 {
-    int16_t payload_space = comm_get_txspace(chan) - MAVLINK_NUM_NON_PAYLOAD_BYTES;
+    uint16_t txspace = comm_get_txspace(chan);
 
     if (telemetry_delayed(chan)) {
         return false;
@@ -1008,6 +999,23 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         }
 
         switch(packet.command) {
+
+        case MAV_CMD_NAV_TAKEOFF:
+            // param4 : yaw angle   (not supported)
+            // param5 : latitude    (not supported)
+            // param6 : longitude   (not supported)
+            // param7 : altitude [metres]
+            if (motors.armed() &&  control_mode == GUIDED) {
+                set_auto_armed(true);
+                float takeoff_alt = packet.param7 * 100;      // Convert m to cm
+                takeoff_alt = max(takeoff_alt,current_loc.alt);
+                takeoff_alt = max(takeoff_alt,100.0f);
+                guided_takeoff_start(takeoff_alt);
+                result = MAV_RESULT_ACCEPTED;
+            } else {
+                result = MAV_RESULT_FAILED;
+            }
+            break;
 
         case MAV_CMD_NAV_LOITER_UNLIM:
             if (set_mode(LOITER)) {

@@ -118,6 +118,9 @@ public:
         k_param_sonar,
         k_param_terrain,
         k_param_terrain_follow,
+        k_param_stab_pitch_down_cd_old, // deprecated
+        k_param_glide_slope_threshold,
+        k_param_stab_pitch_down,
         k_param_joystick,
 
         // 100: Arming parameters
@@ -140,6 +143,7 @@ public:
         k_param_serial0_baud_old,   // deprecated
         k_param_gcs2,               // stream rates for uartD
         k_param_serial2_baud_old,   // deprecated
+        k_param_serial2_protocol,
 
         // 120: Fly-by-wire control
         //
@@ -310,6 +314,7 @@ public:
     AP_Int16 serial1_baud;
 #if MAVLINK_COMM_NUM_BUFFERS > 2
     AP_Int16 serial2_baud;
+    AP_Int8  serial2_protocol;
 #endif
     AP_Int8 telem_delay;
 
@@ -324,6 +329,7 @@ public:
     AP_Float kff_throttle_to_pitch;
     AP_Float ground_steer_alt;
     AP_Int16 ground_steer_dps;
+    AP_Float stab_pitch_down;
 
     // speed used for speed scaling
     AP_Float scaling_speed;
@@ -450,6 +456,7 @@ public:
 #if AP_TERRAIN_AVAILABLE
     AP_Int8 terrain_follow;
 #endif
+    AP_Int16 glide_slope_threshold;
 
     // RC channels
     RC_Channel rc_1;

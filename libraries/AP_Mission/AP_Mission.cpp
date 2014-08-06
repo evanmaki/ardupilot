@@ -42,6 +42,8 @@ void AP_Mission::init()
     if (sizeof(union Content) != 12) {
         hal.scheduler->panic(PSTR("AP_Mission Content must be 12 bytes"));
     }
+
+    _last_change_time_ms = hal.scheduler->millis();
 }
 
 /// start - resets current commands to point to the beginning of the mission
@@ -423,6 +425,9 @@ bool AP_Mission::write_cmd_to_storage(uint16_t index, Mission_Command& cmd)
     hal.storage->write_word(pos_in_storage+1, cmd.p1);
     hal.storage->write_block(pos_in_storage+3, cmd.content.bytes, 12);
 
+    // remember when the mission last changed
+    _last_change_time_ms = hal.scheduler->millis();
+
     // return success
     return true;
 }
@@ -777,7 +782,7 @@ bool AP_Mission::mission_cmd_to_mavlink(const AP_Mission::Mission_Command& cmd, 
 
     case MAV_CMD_CONDITION_CHANGE_ALT:                  // MAV ID: 113
         copy_alt = true;                                // only altitude is used
-        packet.param1 = cmd.content.location.lat / 100.0f;  // climb/descent rate converted from cm/s to m/s.  To-Do: store in proper climb_rate structure
+        packet.param1 = cmd.content.location.alt / 100.0f;  // climb/descent rate converted from cm/s to m/s.  To-Do: store in proper climb_rate structure
         break;
 
     case MAV_CMD_CONDITION_DISTANCE:                    // MAV ID: 114

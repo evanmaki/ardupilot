@@ -117,7 +117,7 @@ public:
         k_param_serial2_baud,
         k_param_land_repositioning,
         k_param_sonar, // sonar object
-        k_param_ekfcheck_compass_thresh,// 54
+        k_param_ekfcheck_thresh,        // 54
         k_param_terrain,
 
         // 65: AP_Limits Library
@@ -126,7 +126,8 @@ public:
         k_param_geofence_limit,         // deprecated - remove
         k_param_altitude_limit,         // deprecated - remove
         k_param_fence,
-        k_param_gps_glitch,             // 70
+        k_param_gps_glitch,
+        k_param_baro_glitch,            // 71
 
         //
         // 75: Singlecopter, CoaxCopter
@@ -173,6 +174,7 @@ public:
         k_param_telem_delay,
         k_param_gcs2,
         k_param_serial2_baud_old, // deprecated
+        k_param_serial2_protocol,
 
         //
         // 140: Sensor parameters
@@ -319,6 +321,7 @@ public:
     AP_Int16        serial1_baud;
 #if MAVLINK_COMM_NUM_BUFFERS > 2
     AP_Int16        serial2_baud;
+    AP_Int8         serial2_protocol;
 #endif
     AP_Int8         telem_delay;
 
@@ -385,7 +388,7 @@ public:
     AP_Int8         arming_check;
 
     AP_Int8         land_repositioning;
-    AP_Float        ekfcheck_compass_thresh;
+    AP_Float        ekfcheck_thresh;
 
 #if FRAME_CONFIG ==     HELI_FRAME
     // Heli

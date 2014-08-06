@@ -81,7 +81,7 @@
 
 #define MAGNETOMETER ENABLED
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_APM2
+#if HAL_CPU_CLASS < HAL_CPU_CLASS_75
  # define PARACHUTE DISABLED
  # define AC_RALLY DISABLED
 #endif
@@ -302,8 +302,8 @@
 
 //////////////////////////////////////////////////////////////////////////////
 //  EKF Checker
-#ifndef EKFCHECK_COMPASS_THRESHOLD_DEFAULT
- # define EKFCHECK_COMPASS_THRESHOLD_DEFAULT    0.6f    // EKF checker's default compass variance above which the EKF's horizontal position will be considered bad
+#ifndef EKFCHECK_THRESHOLD_DEFAULT
+ # define EKFCHECK_THRESHOLD_DEFAULT    0.6f    // EKF checker's default compass and velocity variance above which the EKF's horizontal position will be considered bad
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -563,7 +563,7 @@
  # define RATE_ROLL_D        		0.004f
 #endif
 #ifndef RATE_ROLL_IMAX
- # define RATE_ROLL_IMAX         	500
+ # define RATE_ROLL_IMAX         	1000
 #endif
 
 #ifndef RATE_PITCH_P
@@ -589,7 +589,7 @@
  # define RATE_YAW_D              	0.000f
 #endif
 #ifndef RATE_YAW_IMAX
- # define RATE_YAW_IMAX            	800
+ # define RATE_YAW_IMAX            	1000
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -745,6 +745,11 @@
 // use this to completely disable the CLI
 #ifndef CLI_ENABLED
   #  define CLI_ENABLED           ENABLED
+#endif
+
+//use this to completely disable FRSKY TELEM
+#ifndef FRSKY_TELEM_ENABLED
+  #  define FRSKY_TELEM_ENABLED          ENABLED
 #endif
 
 /*

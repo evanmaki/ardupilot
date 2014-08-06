@@ -119,7 +119,12 @@ static void init_ardupilot()
     gcs[1].setup_uart(hal.uartC, map_baudrate(g.serial1_baud), 128, SERIAL1_BUFSIZE);
 
 #if MAVLINK_COMM_NUM_BUFFERS > 2
-    gcs[2].setup_uart(hal.uartD, map_baudrate(g.serial2_baud), 128, SERIAL2_BUFSIZE);
+    if (g.serial2_protocol == SERIAL2_FRSKY_DPORT || 
+        g.serial2_protocol == SERIAL2_FRSKY_SPORT) {
+        frsky_telemetry.init(hal.uartD, g.serial2_protocol);
+    } else {
+        gcs[2].setup_uart(hal.uartD, map_baudrate(g.serial2_baud), 128, SERIAL2_BUFSIZE);
+    }
 #endif
 
     mavlink_system.sysid = g.sysid_this_mav;
@@ -284,6 +289,9 @@ static void set_mode(enum FlightMode mode)
 
     // cancel inverted flight
     auto_state.inverted_flight = false;
+
+    // don't cross-track when starting a mission
+    auto_state.next_wp_no_crosstrack = true;
 
     // set mode
     previous_mode = control_mode;
@@ -617,4 +625,26 @@ static bool should_log(uint32_t mask)
         in_mavlink_delay = false;
     }
     return ret;
+}
+
+/*
+  send FrSky telemetry. Should be called at 5Hz by scheduler
+ */
+static void telemetry_send(void)
+{
+#if FRSKY_TELEM_ENABLED == ENABLED
+    frsky_telemetry.send_frames((uint8_t)control_mode, 
+                                (AP_Frsky_Telem::FrSkyProtocol)g.serial2_protocol.get());
+#endif
+}
+
+
+/*
+  return throttle percentage from 0 to 100
+ */
+static uint8_t throttle_percentage(void)
+{
+    // to get the real throttle we need to use norm_output() which
+    // returns a number from -1 to 1.
+    return constrain_int16(50*(channel_throttle->norm_output()+1), 0, 100);
 }

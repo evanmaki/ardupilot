@@ -103,7 +103,9 @@ static void auto_disarm_check()
     }
 
     // allow auto disarm in manual flight modes or Loiter/AltHold if we're landed
-    if(manual_flight_mode(control_mode) || (ap.land_complete && (control_mode == LOITER || control_mode == ALT_HOLD || control_mode == POSHOLD || control_mode == AUTOTUNE))) {
+    if (manual_flight_mode(control_mode) || (ap.land_complete && (control_mode == ALT_HOLD || control_mode == LOITER || control_mode == OF_LOITER ||
+                                                                  control_mode == DRIFT || control_mode == SPORT || control_mode == AUTOTUNE ||
+                                                                  control_mode == POSHOLD))) {
         auto_disarming_counter++;
 
         if(auto_disarming_counter >= AUTO_DISARMING_DELAY) {
@@ -203,6 +205,9 @@ static void init_arm_motors()
 
     // log arming to dataflash
     Log_Write_Event(DATA_ARMED);
+
+    // log flight mode in case it was changed while vehicle was disarmed
+    Log_Write_Mode(control_mode);
 
     // reenable failsafe
     failsafe_enable();

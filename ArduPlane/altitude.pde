@@ -74,12 +74,12 @@ static void setup_glide_slope(void)
         break;
 
     case AUTO:
-        // we only do glide slide handling in AUTO when above 40m or
-        // when descending. The 40 meter threshold is arbitrary, and
+        // we only do glide slide handling in AUTO when above 20m or
+        // when descending. The 20 meter threshold is arbitrary, and
         // is basically to prevent situations where we try to slowly
         // gain height at low altitudes, potentially hitting
         // obstacles.
-        if (relative_altitude() > 40 || above_location_current(next_WP_loc)) {
+        if (relative_altitude() > 20 || above_location_current(next_WP_loc)) {
             set_offset_altitude_location(next_WP_loc);
         } else {
             reset_offset_altitude();
@@ -137,7 +137,7 @@ static void set_target_altitude_current(void)
 #if AP_TERRAIN_AVAILABLE
     // also record the terrain altitude if possible
     float terrain_altitude;
-    if (g.terrain_follow && terrain.height_above_terrain(current_loc, terrain_altitude)) {
+    if (g.terrain_follow && terrain.height_above_terrain(terrain_altitude, true)) {
         target_altitude.terrain_following = true;
         target_altitude.terrain_alt_cm = terrain_altitude*100;
     } else {
@@ -176,7 +176,7 @@ static void set_target_altitude_location(const Location &loc)
       terrain altitude
      */
     float height;
-    if (loc.flags.terrain_alt && terrain.height_above_terrain(current_loc, height)) {
+    if (loc.flags.terrain_alt && terrain.height_above_terrain(height, true)) {
         target_altitude.terrain_following = true;
         target_altitude.terrain_alt_cm = loc.alt;
         if (!loc.flags.relative_alt) {
@@ -198,9 +198,8 @@ static int32_t relative_target_altitude_cm(void)
 #if AP_TERRAIN_AVAILABLE
     float relative_home_height;
     if (target_altitude.terrain_following && 
-        terrain.height_relative_home_equivalent(current_loc, 
-                                                target_altitude.terrain_alt_cm*0.01f,
-                                                relative_home_height)) {
+        terrain.height_relative_home_equivalent(target_altitude.terrain_alt_cm*0.01f,
+                                                relative_home_height, true)) {
         // we are following terrain, and have terrain data for the
         // current location. Use it.
         return relative_home_height*100;
@@ -262,7 +261,7 @@ static int32_t calc_altitude_error_cm(void)
 #if AP_TERRAIN_AVAILABLE
     float terrain_height;
     if (target_altitude.terrain_following && 
-        terrain.height_above_terrain(current_loc, terrain_height)) {
+        terrain.height_above_terrain(terrain_height, true)) {
         return target_altitude.terrain_alt_cm - (terrain_height*100);
     }
 #endif
@@ -320,10 +319,23 @@ static void set_offset_altitude_location(const Location &loc)
     float height;
     if (loc.flags.terrain_alt && 
         target_altitude.terrain_following &&
-        terrain.height_above_terrain(current_loc, height)) {
+        terrain.height_above_terrain(height, true)) {
         target_altitude.offset_cm = target_altitude.terrain_alt_cm - (height * 100);
     }
 #endif
+
+    if (flight_stage != AP_SpdHgtControl::FLIGHT_LAND_APPROACH &&
+        flight_stage != AP_SpdHgtControl::FLIGHT_LAND_FINAL) {
+        // if we are within GLIDE_SLOPE_MIN meters of the target altitude
+        // then reset the offset to not use a glide slope. This allows for
+        // more accurate flight of missions where the aircraft may lose or
+        // gain a bit of altitude near waypoint turn points due to local
+        // terrain changes
+        if (g.glide_slope_threshold <= 0 ||
+            labs(target_altitude.offset_cm)*0.01f < g.glide_slope_threshold) {
+            target_altitude.offset_cm = 0;
+        }
+    }
 }
 
 /*
@@ -344,16 +356,20 @@ static bool above_location_current(const Location &loc)
 #if AP_TERRAIN_AVAILABLE
     float terrain_alt;
     if (loc.flags.terrain_alt && 
-        terrain.height_above_terrain(current_loc, terrain_alt)) {
+        terrain.height_above_terrain(terrain_alt, true)) {
         float loc_alt = loc.alt*0.01f;
         if (!loc.flags.relative_alt) {
             loc_alt -= home.alt*0.01f;
         }
-        return terrain_alt > loc.alt;
+        return terrain_alt > loc_alt;
     }
 #endif
 
-    return current_loc.alt > loc.alt;
+    float loc_alt_cm = loc.alt;
+    if (!loc.flags.relative_alt) {
+        loc_alt_cm -= home.alt;
+    }
+    return current_loc.alt > loc_alt_cm;
 }
 
 /*

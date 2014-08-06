@@ -9,9 +9,6 @@ static bool in_mavlink_delay;
 // true if we are out of time in our event timeslice
 static bool	gcs_out_of_time;
 
-// check if a message will fit in the payload space available
-#define CHECK_PAYLOAD_SIZE(id) if (payload_space < MAVLINK_MSG_ID_ ## id ## _LEN) return false
-
 /*
  *  !!NOTE!!
  *
@@ -378,15 +375,12 @@ static void NOINLINE send_vfr_hud(mavlink_channel_t chan)
     } else if (!ahrs.airspeed_estimate(&aspeed)) {
         aspeed = 0;
     }
-    float throttle_norm = channel_throttle->norm_output() * 100;
-    throttle_norm = constrain_int16(throttle_norm, -100, 100);
-    uint16_t throttle = ((uint16_t)(throttle_norm + 100)) / 2;
     mavlink_msg_vfr_hud_send(
         chan,
         aspeed,
         gps.ground_speed(),
         (ahrs.yaw_sensor / 100) % 360,
-        throttle,
+        throttle_percentage(),
         current_loc.alt / 100.0,
         barometer.get_climb_rate());
 }
@@ -480,11 +474,14 @@ static bool telemetry_delayed(mavlink_channel_t chan)
     return true;
 }
 
+// check if a message will fit in the payload space available
+#define CHECK_PAYLOAD_SIZE(id) if (txspace < MAVLINK_NUM_NON_PAYLOAD_BYTES+MAVLINK_MSG_ID_ ## id ## _LEN) return false
+
 
 // try to send a message, return false if it won't fit in the serial tx buffer
 bool GCS_MAVLINK::try_send_message(enum ap_message id)
 {
-    int16_t payload_space = comm_get_txspace(chan) - MAVLINK_NUM_NON_PAYLOAD_BYTES;
+    uint16_t txspace = comm_get_txspace(chan);
 
     if (telemetry_delayed(chan)) {
         return false;
@@ -1255,6 +1252,9 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 
     case MAVLINK_MSG_ID_MISSION_SET_CURRENT:
     {
+        // disable cross-track when user asks for WP change, to
+        // prevent unexpected flight paths
+        auto_state.next_wp_no_crosstrack = true;
         handle_mission_set_current(mission, msg);
         if (control_mode == AUTO && mission.state() == AP_Mission::MISSION_STOPPED) {
             mission.resume();
