@@ -976,6 +976,28 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             joystick.set_enabled(packet.param1);
             break;
 
+        case MAV_CMD_OVERRIDE_GOTO:
+            if (control_mode != AUTO) {
+                result = MAV_RESULT_FAILED;
+            } else {
+                //update the current waypoint
+                
+                if (g.loiter_radius < 0) {
+                    loiter.direction = -1;
+                } else {
+                    loiter.direction = 1;
+                }
+
+                next_WP_loc.lat = (int32_t)(packet.param5 * 1.0e7f); 
+                next_WP_loc.lng = (int32_t)(packet.param6 * 1.0e7f);
+                next_WP_loc.alt = (int32_t)(home.alt + 100.0f*packet.param7);
+                //TODO: terrain following altitude
+
+                result = MAV_RESULT_ACCEPTED;
+            }
+
+            break;
+
         case MAV_CMD_NAV_LOITER_UNLIM:
             set_mode(LOITER);
             result = MAV_RESULT_ACCEPTED;
