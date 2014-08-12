@@ -978,6 +978,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         case MAV_CMD_DO_JOYSTICK_OPTIMIZED:
             if(packet.param1 == 0) {
                 set_mode(AUTO);
+                hal.rcin->clear_overrides();
             }
             else if(packet.param1 == 1) {
                 set_mode(FLY_BY_WIRE_A);
