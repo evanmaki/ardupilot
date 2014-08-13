@@ -769,15 +769,18 @@ bool GCS_MAVLINK::stream_trigger(enum streams stream_num)
         return false;
     }
 
+    if (joystick.get_reset_stream_ticks()) {
+        stream_ticks[stream_num] = 0;
+    }
+
     if (stream_ticks[stream_num] == 0) {
         if (joystick.get_enabled()) {
             // mavlink_delay needs to be multiplied by 50
             // so that it will actually delay by the specified time
             // since were running at 50 hz.
             stream_ticks[stream_num] = (int)(joystick.get_mavlink_delay()*50.0f);
-            
+            stream_slowdown = 0;
             return true;
-
         }
         // we're triggering now, setup the next trigger point
         if (rate > 50) {
@@ -848,6 +851,7 @@ GCS_MAVLINK::data_stream_send(void)
             send_message(MSG_RADIO_OUT);
             send_message(MSG_RADIO_IN);
         }
+        if(joystick.get_reset_stream_ticks()) { joystick.set_reset_stream_ticks(0); }
         return;
     }
     
@@ -977,6 +981,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 
         case MAV_CMD_DO_JOYSTICK_OPTIMIZED:
             if(packet.param1 == 0) {
+                joystick.set_reset_stream_ticks(1);
                 set_mode(AUTO);
                 hal.rcin->clear_overrides();
             }
