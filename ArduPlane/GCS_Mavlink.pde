@@ -990,7 +990,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
                 set_mode(AUTO);
             }
             else if(packet.param1 == 1) {
-                set_mode(FLY_BY_WIRE_A);
+                // Do Nothing
             }
             joystick.set_enabled(packet.param1);
             break;
