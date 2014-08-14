@@ -982,8 +982,12 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         case MAV_CMD_DO_JOYSTICK_OPTIMIZED:
             if(packet.param1 == 0) {
                 joystick.set_reset_stream_ticks(1);
-                set_mode(AUTO);
                 hal.rcin->clear_overrides();
+                //Make sure control switch is up to date before switching to
+                //AUTO so an edge trigger to another mode won't kick us out
+                //immediately:
+                read_control_switch();
+                set_mode(AUTO);
             }
             else if(packet.param1 == 1) {
                 set_mode(FLY_BY_WIRE_A);
