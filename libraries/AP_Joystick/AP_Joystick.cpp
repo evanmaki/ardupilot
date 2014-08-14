@@ -19,7 +19,7 @@ const AP_Param::GroupInfo AP_Joystick::var_info[] PROGMEM = {
     // @Description: Specifies action taken if telemetry link is lost during joystick operation
     // @Values: 0:None,1:RTL,2:Kill_Throttle
     // @User: Advanced
-    AP_GROUPINFO("FS_ACTION", 1, AP_Joystick, _failsafe_action, 1),
+    AP_GROUPINFO("FS_ACTION", 1, AP_Joystick, _failsafe_action, 2),
 
     // @Param: LINK_DELAY
     // @Display Name: MAVLink Delay
