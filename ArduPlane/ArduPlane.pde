@@ -1000,8 +1000,8 @@ static void acs_check() {
             gps.last_fix_time_ms());
 
     AP_ACS::FailsafeState current_fs_state = acs.get_current_fs_state();
-    //always ignore failsafes in manual mods
-    if (control_mode != MANUAL && control_mode != FLY_BY_WIRE_A) {
+    //always ignore failsafes in manual modes
+    if (control_mode != MANUAL && control_mode != FLY_BY_WIRE_B && control_mode != FLY_BY_WIRE_A) {
         switch (current_fs_state) {
             case AP_ACS::GPS_LONG_FS:
             case AP_ACS::GPS_SHORT_FS:
