@@ -205,8 +205,9 @@ static NOINLINE void send_extended_status1(mavlink_channel_t chan)
         break;
     }
 
-    // default: all present sensors healthy except 3D_MAG, GPS, DIFFERNTIAL_PRESSURE.   GEOFENCE always defaults to healthy.
-    control_sensors_health = control_sensors_present & ~(MAV_SYS_STATUS_SENSOR_3D_MAG | 
+    // default: all present sensors healthy except baro, 3D_MAG, GPS, DIFFERNTIAL_PRESSURE.   GEOFENCE always defaults to healthy.
+    control_sensors_health = control_sensors_present & ~(MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE |
+                                                         MAV_SYS_STATUS_SENSOR_3D_MAG |
                                                          MAV_SYS_STATUS_SENSOR_GPS |
                                                          MAV_SYS_STATUS_SENSOR_DIFFERENTIAL_PRESSURE);
     control_sensors_health |= MAV_SYS_STATUS_GEOFENCE;
@@ -215,7 +216,9 @@ static NOINLINE void send_extended_status1(mavlink_channel_t chan)
         // AHRS subsystem is unhealthy
         control_sensors_health &= ~MAV_SYS_STATUS_AHRS;
     }
-
+    if (barometer.healthy()) {
+        control_sensors_health |= MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE;
+    }
     if (g.compass_enabled && compass.healthy(0) && ahrs.use_compass()) {
         control_sensors_health |= MAV_SYS_STATUS_SENSOR_3D_MAG;
     }
@@ -634,6 +637,11 @@ bool GCS_MAVLINK::try_send_message(enum ap_message id)
 #endif
         break;
 
+    case MSG_BATTERY2:
+        CHECK_PAYLOAD_SIZE(BATTERY2);
+        gcs[chan-MAVLINK_COMM_0].send_battery2(battery);
+        break;
+
     case MSG_WIND:
         CHECK_PAYLOAD_SIZE(WIND);
         send_wind(chan);
@@ -904,6 +912,7 @@ GCS_MAVLINK::data_stream_send(void)
 #if AP_TERRAIN_AVAILABLE
         send_message(MSG_TERRAIN);
 #endif
+        send_message(MSG_BATTERY2);
     }
 }
 
@@ -1350,7 +1359,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             break;
         
         if (packet.idx >= rally.get_rally_total() || 
-            packet.idx >= MAX_RALLYPOINTS) {
+            packet.idx >= rally.get_rally_max()) {
             send_text_P(SEVERITY_LOW,PSTR("bad rally point message ID"));
             break;
         }
@@ -1461,11 +1470,15 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 
         // set gps hil sensor
         Location loc;
+        memset(&loc, 0, sizeof(loc));
         loc.lat = packet.lat;
         loc.lng = packet.lon;
         loc.alt = packet.alt/10;
         Vector3f vel(packet.vx, packet.vy, packet.vz);
         vel *= 0.01f;
+
+        // setup airspeed pressure based on 3D speed, no wind
+        airspeed.setHIL(sq(vel.length()) / 2.0f + 2013);
 
         gps.setHIL(0, AP_GPS::GPS_OK_FIX_3D,
                    packet.time_usec/1000,
@@ -1488,7 +1501,6 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 
         barometer.setHIL(packet.alt*0.001f);
         compass.setHIL(packet.roll, packet.pitch, packet.yaw);
-        airspeed.disable();
 
         // cope with DCM getting badly off due to HIL lag
         if (g.hil_err_limit > 0 &&
@@ -1704,9 +1716,11 @@ void gcs_send_text_fmt(const prog_char_t *fmt, ...)
 static void gcs_send_airspeed_calibration(const Vector3f &vg)
 {
     for (uint8_t i=0; i<num_gcs; i++) {
-        if (comm_get_txspace((mavlink_channel_t)i) >= 
-            MAVLINK_NUM_NON_PAYLOAD_BYTES + MAVLINK_MSG_ID_AIRSPEED_AUTOCAL_LEN) {
-            airspeed.log_mavlink_send((mavlink_channel_t)i, vg);
+        if (gcs[i].initialised) {
+            if (comm_get_txspace((mavlink_channel_t)i) - MAVLINK_NUM_NON_PAYLOAD_BYTES >= 
+                MAVLINK_MSG_ID_AIRSPEED_AUTOCAL_LEN) {
+                airspeed.log_mavlink_send((mavlink_channel_t)i, vg);
+            }
         }
     }
 }

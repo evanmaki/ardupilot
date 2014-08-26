@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "ArduPlane V3.0.4-beta3"
+#define THISFIRMWARE "ArduPlane V3.1.0"
 /*
    Lead developer: Andrew Tridgell
  
@@ -36,6 +36,7 @@
 #include <AP_Progmem.h>
 #include <AP_Menu.h>
 #include <AP_Param.h>
+#include <StorageManager.h>
 #include <AP_GPS.h>         // ArduPilot GPS library
 #include <AP_Baro.h>        // ArduPilot barometer library
 #include <AP_Compass.h>     // ArduPilot Mega Magnetometer Library
@@ -327,7 +328,7 @@ static AP_Camera camera(&relay);
 #endif
 
 //Rally Ponints
-AP_Rally rally(ahrs, MAX_RALLYPOINTS, RALLY_START_BYTE);
+AP_Rally rally(ahrs);
 
 //Joystick (used when optimized link for joystick use)
 AP_Joystick joystick;
@@ -543,6 +544,9 @@ static struct {
     // should we use cross-tracking for this waypoint?
     bool no_crosstrack:1;
 
+    // in FBWA taildragger takeoff mode
+    bool fbwa_tdrag_takeoff_mode:1;
+
     // Altitude threshold to complete a takeoff command in autonomous modes.  Centimeters
     int32_t takeoff_altitude_cm;
 
@@ -558,17 +562,22 @@ static struct {
 
     // turn angle for next leg of mission
     float next_turn_angle;
+
+    // filtered sink rate for landing
+    float land_sink_rate;
 } auto_state = {
     takeoff_complete : true,
     land_complete : false,
     inverted_flight  : false,
     next_wp_no_crosstrack : true,
     no_crosstrack : true,
+    fbwa_tdrag_takeoff_mode : false,
     takeoff_altitude_cm : 0,
     takeoff_pitch_cd : 0,
     highest_airspeed : 0,
     initial_pitch_cd : 0,
-    next_turn_angle  : 90.0f
+    next_turn_angle  : 90.0f,
+    land_sink_rate   : 0
 };
 
 // true if we are in an auto-throttle mode, which means
@@ -602,8 +611,7 @@ static bool start_command_callback(const AP_Mission::Mission_Command &cmd);
 AP_Mission mission(ahrs, 
                    &start_command_callback, 
                    &verify_command_callback, 
-                   &exit_mission_callback, 
-                   MISSION_START_BYTE, MISSION_END_BYTE);
+                   &exit_mission_callback);
 
 ////////////////////////////////////////////////////////////////////////////////
 // terrain handling
@@ -701,6 +709,9 @@ static struct {
     // target altitude above terrain in cm, valid if terrain_following
     // is set
     int32_t terrain_alt_cm;
+
+    // lookahead value for height error reporting
+    float lookahead;
 #endif
 } target_altitude;
 
@@ -801,11 +812,11 @@ static const AP_Scheduler::Task scheduler_tasks[] PROGMEM = {
 #if FRSKY_TELEM_ENABLED == ENABLED
     { telemetry_send,        10,    100 },	
 #endif
-
+    { terrain_update,         5,    500 },
 };
 
 // setup the var_info table
-AP_Param param_loader(var_info, MISSION_START_BYTE);
+AP_Param param_loader(var_info);
 
 void setup() {
     cliSerial = hal.console;
@@ -816,8 +827,6 @@ void setup() {
     AP_Notify::flags.failsafe_battery = false;
 
     notify.init(false);
-
-    battery.init();
 
     rssi_analog_source = hal.analogin->channel(ANALOG_INPUT_NONE);
 
@@ -986,7 +995,7 @@ static void obc_fs_check(void)
 {
 #if OBC_FAILSAFE == ENABLED
     // perform OBC failsafe checks
-    obc.check(OBC_MODE(control_mode), failsafe.last_heartbeat_ms);
+    obc.check(OBC_MODE(control_mode), failsafe.last_heartbeat_ms, geofence_breached(), failsafe.last_valid_rc_ms);
 #endif
 }
 
@@ -1076,7 +1085,6 @@ static void one_second_loop()
     AP_Notify::flags.armed = arming.is_armed() || arming.arming_required() == AP_Arming::NO;
 
 #if AP_TERRAIN_AVAILABLE
-    terrain.update();
     if (should_log(MASK_LOG_GPS)) {
         terrain.log_terrain_data(DataFlash);
     }
@@ -1086,7 +1094,7 @@ static void one_second_loop()
 static void log_perf_info()
 {
     if (scheduler.debug() != 0) {
-        hal.console->printf_P(PSTR("G_Dt_max=%lu\n"), (unsigned long)G_Dt_max);
+        gcs_send_text_fmt(PSTR("G_Dt_max=%lu\n"), (unsigned long)G_Dt_max);
     }
     if (should_log(MASK_LOG_PM))
         Log_Write_Performance();
@@ -1099,6 +1107,13 @@ static void compass_save()
     if (g.compass_enabled) {
         compass.save_offsets();
     }
+}
+
+static void terrain_update(void)
+{
+#if AP_TERRAIN_AVAILABLE
+    terrain.update();
+#endif
 }
 
 /*
@@ -1231,16 +1246,16 @@ static void handle_auto_mode(void)
 
     case MAV_CMD_NAV_LAND:
         calc_nav_roll();
+        calc_nav_pitch();
         
         if (auto_state.land_complete) {
             // during final approach constrain roll to the range
             // allowed for level flight
             nav_roll_cd = constrain_int32(nav_roll_cd, -g.level_roll_limit*100UL, g.level_roll_limit*100UL);
             
-            // hold pitch constant in final approach
-            nav_pitch_cd = g.land_pitch_cd;
+            // hold pitch above the specified land pitch in final approach
+            nav_pitch_cd = constrain_int32(nav_pitch_cd, g.land_pitch_cd, nav_pitch_cd);
         } else {
-            calc_nav_pitch();
             if (!airspeed.use()) {
                 // when not under airspeed control, don't allow
                 // down pitch in landing
@@ -1261,6 +1276,7 @@ static void handle_auto_mode(void)
         // are for takeoff and landing
         steer_state.hold_course_cd = -1;
         auto_state.land_complete = false;
+        auto_state.land_sink_rate = 0;
         calc_nav_roll();
         calc_nav_pitch();
         calc_throttle();
@@ -1364,6 +1380,16 @@ static void update_flight_mode(void)
             nav_roll_cd = 0;
             nav_pitch_cd = 0;
             channel_throttle->servo_out = 0;
+        }
+        if (g.fbwa_tdrag_chan > 0) {
+            // check for the user enabling FBWA taildrag takeoff mode
+            bool tdrag_mode = (hal.rcin->read(g.fbwa_tdrag_chan-1) > 1700);
+            if (tdrag_mode && !auto_state.fbwa_tdrag_takeoff_mode) {
+                if (auto_state.highest_airspeed < g.takeoff_tdrag_speed1) {
+                    auto_state.fbwa_tdrag_takeoff_mode = true;
+                    gcs_send_text_P(SEVERITY_LOW, PSTR("FBWA tdrag mode\n"));
+                }
+            }
         }
         break;
     }

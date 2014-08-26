@@ -155,6 +155,12 @@ public:
     bool height_above_terrain(float &terrain_altitude, bool extrapolate = false);
 
     /*
+      calculate lookahead rise in terrain. This returns extra altitude
+      needed to clear upcoming terrain in meters
+     */
+    float lookahead(float bearing, float distance, float climb_ratio);
+
+    /*
       log terrain status to DataFlash
      */
     void log_terrain_data(DataFlash_Class &dataflash);
@@ -378,6 +384,9 @@ private:
 
     // next mission command to check
     uint16_t next_mission_index;
+
+    // next mission position to check
+    uint8_t next_mission_pos;
 
     // last time the mission changed
     uint32_t last_mission_change_ms;
