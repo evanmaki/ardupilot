@@ -778,12 +778,6 @@ static void set_servos(void)
         }
 #endif
 
-        if (joystick.get_failsafe_action() == AP_Joystick::KILL_THROTTLE && joystick.get_enabled() && joystick.check_failsafe_ok() != true ) {
-            gcs_send_text_P(SEVERITY_LOW, PSTR("LOST TELEMETRY LINK DURING JOYSTICK: killing throttle"));
-            channel_throttle->servo_out = aparm.throttle_min.get();
-        }
-
-
         // push out the PWM values
         if (g.mix_mode == 0) {
             channel_roll->calc_pwm();

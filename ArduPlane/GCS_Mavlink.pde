@@ -836,8 +836,10 @@ GCS_MAVLINK::data_stream_send(void)
     if (joystick.get_enabled()) {
         if (stream_trigger(STREAM_EXTENDED_STATUS)) {
             send_message(MSG_EXTENDED_STATUS1);
+            send_message(MSG_EXTENDED_STATUS2);
             send_message(MSG_VFR_HUD);
             send_message(MSG_FENCE_STATUS);
+            send_message(MSG_LOCATION);
         }
         if (gcs_out_of_time) return;
 
@@ -979,8 +981,9 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 
         switch(packet.command) {
 
-        case MAV_CMD_DO_JOYSTICK_OPTIMIZED:
-            if(packet.param1 == 0) {
+        case MAV_CMD_DO_JOYSTICK_OPTIMIZED_STOP:
+            if (joystick.get_enabled() == 1) { 
+                joystick.set_enabled(0);
                 joystick.set_reset_stream_ticks(1);
                 hal.rcin->clear_overrides();
                 //Make sure control switch is up to date before switching to
@@ -988,11 +991,25 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
                 //immediately:
                 read_control_switch();
                 set_mode(AUTO);
+            
+                result = MAV_RESULT_ACCEPTED;
+            } else {
+                //command didn't fail, but we didn't need to disable
+                //the joystick either.
+                result = MAV_RESULT_UNSUPPORTED;
             }
-            else if(packet.param1 == 1) {
-                // Do Nothing
+            break;
+
+        case MAV_CMD_DO_JOYSTICK_OPTIMIZED_START:
+            if (joystick.get_enabled() == 0) {
+                joystick.set_enabled(1);          
+        
+                result = MAV_RESULT_ACCEPTED;
+            } else {
+                //command didn't fail, but we didn't need to enable the
+                //joystick either (already enabled).
+                result = MAV_RESULT_UNSUPPORTED;
             }
-            joystick.set_enabled(packet.param1);
             break;
 
         case MAV_CMD_OVERRIDE_GOTO:
@@ -1449,7 +1466,6 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         // a RC override message is consiered to be a 'heartbeat' from
         // the ground station for failsafe purposes
         failsafe.last_heartbeat_ms = millis();
-        joystick.set_last_heartbeat_ms(failsafe.last_heartbeat_ms);
         break;
     }
 
@@ -1465,7 +1481,6 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         if (! acs.handle_heartbeat(msg)) 
 #endif
         failsafe.last_heartbeat_ms = millis();
-        joystick.set_last_heartbeat_ms(failsafe.last_heartbeat_ms);
 
         break;
     }
