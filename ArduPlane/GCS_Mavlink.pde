@@ -771,6 +771,7 @@ bool GCS_MAVLINK::stream_trigger(enum streams stream_num)
 
     if (joystick.get_reset_stream_ticks()) {
         stream_ticks[stream_num] = 0;
+        joystick.set_reset_stream_ticks(0);
     }
 
     if (stream_ticks[stream_num] == 0) {
