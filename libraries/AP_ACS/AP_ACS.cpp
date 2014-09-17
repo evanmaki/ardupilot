@@ -141,6 +141,7 @@ bool AP_ACS::check(ACS_FlightMode mode,
 #if AP_AHRS_NAVEKF_AVAILABLE
 void AP_ACS::send_position_attitude_to_payload(AP_AHRS_NavEKF &ahrs, mavlink_channel_t chan) {
     struct Location loc;
+    const struct Location home = ahrs.get_home();
     Vector3f eulers;    
     Vector3f posNED;
     Vector3f velNED;
@@ -163,10 +164,10 @@ void AP_ACS::send_position_attitude_to_payload(AP_AHRS_NavEKF &ahrs, mavlink_cha
                            loc.lat,
                            loc.lng,
                            loc.alt,
-                           posNED.z*-100.0,
-                           velNED.x,
-                           velNED.y,
-                           velNED.z,
+                           loc.alt - home.alt,
+                           velNED.x*100.f,
+                           velNED.y*100.f,
+                           velNED.z*-100.f,
                            pose,
                            gyroBias.x,
                            gyroBias.y,
