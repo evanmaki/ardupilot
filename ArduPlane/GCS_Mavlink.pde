@@ -613,6 +613,13 @@ bool GCS_MAVLINK::try_send_message(enum ap_message id)
         gcs[chan-MAVLINK_COMM_0].send_ahrs(ahrs);
         break;
 
+    case MSG_GLOBAL_POS_ATT_NED_COV:
+#if AP_ACS_USE == TRUE && AP_AHRS_NAVEKF_AVAILABLE == 1
+        CHECK_PAYLOAD_SIZE(GLOBAL_POS_ATT_NED_COV);
+        acs.send_position_attitude_to_payload(ahrs, chan);
+#endif
+        break;
+
     case MSG_SIMSTATE:
         CHECK_PAYLOAD_SIZE(SIMSTATE);
         send_simstate(chan);
@@ -860,6 +867,7 @@ GCS_MAVLINK::data_stream_send(void)
     if (gcs_out_of_time) return;
 
     if (stream_trigger(STREAM_EXTENDED_STATUS)) {
+        send_message(MSG_GLOBAL_POS_ATT_NED_COV);
         send_message(MSG_EXTENDED_STATUS1);
         send_message(MSG_EXTENDED_STATUS2);
         send_message(MSG_CURRENT_WAYPOINT);
@@ -974,16 +982,6 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         send_text_P(SEVERITY_LOW,PSTR("command received: "));
 
         switch(packet.command) {
-
-        case MAV_CMD_DO_JOYSTICK_OPTIMIZED:
-            if(packet.param1 == 0) {
-                set_mode(AUTO);
-            }
-            else if(packet.param1 == 1) {
-                set_mode(FLY_BY_WIRE_A);
-            }
-            joystick.set_enabled(packet.param1);
-            break;
 
         case MAV_CMD_OVERRIDE_GOTO:
             if (control_mode != AUTO) {
