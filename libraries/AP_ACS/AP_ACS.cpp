@@ -137,3 +137,42 @@ bool AP_ACS::check(ACS_FlightMode mode,
 
     return true;
 }
+
+#if AP_AHRS_NAVEKF_AVAILABLE
+void AP_ACS::send_position_attitude_to_payload(AP_AHRS_NavEKF &ahrs, mavlink_channel_t chan) {
+    struct Location loc;
+    Vector3f eulers;    
+    Vector3f posNED;
+    Vector3f velNED;
+    Vector3f gyroBias;
+    ahrs.get_NavEKF().getEulerAngles(eulers);
+    ahrs.get_NavEKF().getVelNED(velNED);
+    ahrs.get_NavEKF().getLLH(loc);
+    ahrs.get_NavEKF().getPosNED(posNED);
+    ahrs.get_NavEKF().getGyroBias(gyroBias);
+
+    float pose[4];
+    //TODO: eventually these should be quaternions:
+    pose[0] = eulers.x; pose[1] = eulers.y; pose[2] = eulers.z;
+
+    float covariance[45];
+    //TODO
+
+    mavlink_msg_global_pos_att_ned_cov_send (chan,
+                           hal.scheduler->millis(),
+                           loc.lat,
+                           loc.lng,
+                           loc.alt,
+                           posNED.z*-100.0,
+                           velNED.x,
+                           velNED.y,
+                           velNED.z,
+                           pose,
+                           gyroBias.x,
+                           gyroBias.y,
+                           gyroBias.z,
+                           covariance
+                           );
+}
+#endif //AP_AHRS_NAVEKF_AVAILABLE
+
