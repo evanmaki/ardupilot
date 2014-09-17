@@ -167,7 +167,7 @@ void AP_ACS::send_position_attitude_to_payload(AP_AHRS_NavEKF &ahrs, mavlink_cha
                            loc.alt - home.alt,
                            velNED.x*100.f,
                            velNED.y*100.f,
-                           velNED.z*-100.f,
+                           velNED.z*100.f,
                            pose,
                            gyroBias.x,
                            gyroBias.y,
