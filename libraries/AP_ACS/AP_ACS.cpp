@@ -69,9 +69,8 @@ void AP_ACS::set_kill_throttle(AP_Int8 kt) {
 
 // check for failsafe conditions IN PRIORITY ORDER
 bool AP_ACS::check(ACS_FlightMode mode, 
-                   AP_SpdHgtControl::FlightStage flight_stage,
-                   uint32_t last_heartbeat_ms,
-                   uint32_t last_gps_fix_ms) {
+        AP_SpdHgtControl::FlightStage flight_stage, uint32_t last_heartbeat_ms,
+        uint32_t last_gps_fix_ms, uint32_t last_radio_status_remrssi_ms) {
 
     uint32_t now = hal.scheduler->millis();
 
@@ -126,8 +125,17 @@ bool AP_ACS::check(ACS_FlightMode mode,
         }
     }
 
+    //always check loss of GCS comms 2nd (for auto landing)
+    //If we haven't had any contact with the GCS for two minutes, then 
+    //enter failsafe state
+    if (now - last_hearbeat_ms > 120000 ||
+        now - last_radio_status_remrssi_ms > 120000) {
+        _current_fs_state = GCS_AUTOLAND_FS;
+        return false;
+    }
+
     if (_watch_heartbeat != 0 &&
-        hal.scheduler->millis() - _last_computer_heartbeat_ms > 20000) {
+        now - _last_computer_heartbeat_ms > 20000) {
         _current_fs_state = NO_COMPANION_COMPUTER_FS;
         return false;
     }

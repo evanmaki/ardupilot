@@ -1013,7 +1013,7 @@ static void obc_fs_check(void)
 static void acs_check() {
     acs.check(AP_ACS::ACS_FlightMode(control_mode), 
             TECS_controller.get_flight_stage(), failsafe.last_heartbeat_ms,
-            gps.last_fix_time_ms());
+            gps.last_fix_time_ms(), gcs[0].last_radio_status_remrssi_ms);
 
     AP_ACS::FailsafeState current_fs_state = acs.get_current_fs_state();
     //always ignore failsafes in manual modes
@@ -1039,6 +1039,11 @@ static void acs_check() {
                 if (control_mode == CIRCLE) {
                     set_mode((FlightMode) acs.get_previous_mode());
                 }
+                break;
+
+            case AP_ACS::GCS_AUTOLAND_FS:
+                //start landing if not already
+
                 break;
 
             case AP_ACS::NO_COMPANION_COMPUTER_FS:

@@ -36,7 +36,7 @@ public:
         BATTERY_CURR_FS,
         BATTERY_VOLT_FS,
         GEOFENCE_FS,
-        GCS_FS,
+        GCS_AUTOLAND_FS,
         THROTTLE_FS,
         NO_FS,
         NO_COMPANION_COMPUTER_FS
@@ -65,7 +65,7 @@ public:
     //returns true if everything OK.
     //false if RTL should happen
     bool check(ACS_FlightMode mode, AP_SpdHgtControl::FlightStage flight_stage,
-           uint32_t last_heartbeat_ms, uint32_t last_gps_fix_ms);
+           uint32_t last_heartbeat_ms, uint32_t last_gps_fix_ms, uint32_t last_radio_status_remrssi_ms);
 
 #if AP_AHRS_NAVEKF_AVAILABLE
     void send_position_attitude_to_payload(AP_AHRS_NavEKF &ahrs,
