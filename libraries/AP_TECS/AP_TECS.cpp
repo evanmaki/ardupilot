@@ -375,7 +375,8 @@ void AP_TECS::_update_height_demand(void)
         if (_flare_counter == 0) {
             _hgt_rate_dem = _climb_rate;
         }
-        if (_flare_counter < 5) {
+        // bring it in over 1s to prevent overshoot
+        if (_flare_counter < 10) {
             _hgt_rate_dem = _hgt_rate_dem * 0.8f - 0.2f * _land_sink;
             _flare_counter++;
         } else {
@@ -735,7 +736,10 @@ void AP_TECS::update_pitch_throttle(int32_t hgt_dem_cm,
 	}
     if (flight_stage == FLIGHT_LAND_FINAL) {
         // in flare use min pitch from LAND_PITCH_CD
-		_PITCHminf = max(_PITCHminf, aparm.land_pitch_cd * 0.01f);        
+        _PITCHminf = max(_PITCHminf, aparm.land_pitch_cd * 0.01f);
+
+        // and allow zero throttle
+        _THRminf = 0;
     }
 	// convert to radians
 	_PITCHmaxf = radians(_PITCHmaxf);

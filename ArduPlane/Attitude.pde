@@ -214,6 +214,10 @@ static void stabilize_yaw(float speed_scaler)
         // are below the GROUND_STEER_ALT
         steering_control.ground_steering = (channel_roll->control_in == 0 && 
                                             fabsf(relative_altitude()) < g.ground_steer_alt);
+        if (control_mode == AUTO && flight_stage == AP_SpdHgtControl::FLIGHT_LAND_APPROACH) {
+            // don't use ground steering on landing approach
+            steering_control.ground_steering = false;
+        }
     }
 
 
@@ -509,6 +513,26 @@ static void throttle_slew_limit(int16_t last_throttle)
     }
 }
 
+/*****************************************
+Flap slew limit
+*****************************************/
+static void flap_slew_limit(int8_t &last_value, int8_t &new_value)
+{
+    uint8_t slewrate = g.flap_slewrate;
+    // if slew limit rate is set to zero then do not slew limit
+    if (slewrate) {                   
+        // limit flap change by the given percentage per second
+        float temp = slewrate * G_Dt;
+        // allow a minimum change of 1% per cycle. This means the
+        // slowest flaps we can do is full change over 2 seconds
+        if (temp < 1) {
+            temp = 1;
+        }
+        new_value = constrain_int16(new_value, last_value - temp, last_value + temp);
+    }
+    last_value = new_value;
+}
+
 
 
 /**
@@ -795,9 +819,13 @@ static void set_servos(void)
         channel_throttle->servo_out = 0;
 #else
         // convert 0 to 100% into PWM
+        uint8_t min_throttle = aparm.throttle_min.get();
+        if (control_mode == AUTO && flight_stage == AP_SpdHgtControl::FLIGHT_LAND_FINAL) {
+            min_throttle = 0;
+        }
         channel_throttle->servo_out = constrain_int16(channel_throttle->servo_out, 
-                                                       aparm.throttle_min.get(), 
-                                                       aparm.throttle_max.get());
+                                                      min_throttle,
+                                                      aparm.throttle_max.get());
 
         if (suppress_throttle()) {
             // throttle is suppressed in auto mode
@@ -829,8 +857,10 @@ static void set_servos(void)
     }
 
     // Auto flap deployment
-    uint8_t auto_flap_percent = 0;
+    int8_t auto_flap_percent = 0;
     int8_t manual_flap_percent = 0;
+    static int8_t last_auto_flap;
+    static int8_t last_manual_flap;
 
     // work out any manual flap input
     RC_Channel *flapin = RC_Channel::rc_channel(g.flapin_channel-1);
@@ -853,12 +883,38 @@ static void set_servos(void)
         } else {
             auto_flap_percent = g.flap_1_percent;
         }
+
+        /*
+          special flap levels for takeoff and landing. This works
+          better than speed based flaps as it leads to less
+          possibility of oscillation
+         */
+        if (control_mode == AUTO) {
+            switch (flight_stage) {
+            case AP_SpdHgtControl::FLIGHT_TAKEOFF:
+                if (g.takeoff_flap_percent != 0) {
+                    auto_flap_percent = g.takeoff_flap_percent;
+                }
+                break;
+            case AP_SpdHgtControl::FLIGHT_LAND_APPROACH:
+            case AP_SpdHgtControl::FLIGHT_LAND_FINAL:
+                if (g.land_flap_percent != 0) {
+                    auto_flap_percent = g.land_flap_percent;
+                }
+                break;
+            default:
+                break;
+            }
+        }
     }
 
     // manual flap input overrides auto flap input
     if (abs(manual_flap_percent) > auto_flap_percent) {
         auto_flap_percent = manual_flap_percent;
     }
+
+    flap_slew_limit(last_auto_flap, auto_flap_percent);
+    flap_slew_limit(last_manual_flap, manual_flap_percent);
 
     RC_Channel_aux::set_servo_out(RC_Channel_aux::k_flap_auto, auto_flap_percent);
     RC_Channel_aux::set_servo_out(RC_Channel_aux::k_flap, manual_flap_percent);

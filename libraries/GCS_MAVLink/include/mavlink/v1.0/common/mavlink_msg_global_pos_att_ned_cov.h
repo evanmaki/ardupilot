@@ -7,13 +7,13 @@ typedef struct __mavlink_global_pos_att_ned_cov_t
  uint32_t time_boot_ms; ///< Timestamp (milliseconds since system boot)
  int32_t lat; ///< Latitude, expressed as * 1E7
  int32_t lon; ///< Longitude, expressed as * 1E7
- int32_t alt; ///< Altitude in meters above home altitude, expressed as * 1000 (millimeters), 
- int32_t relative_alt; ///< Fused altitude, expressed as * 1000 (millimeters)
+ int32_t alt; ///< MSL Altitude in meters, expressed as m * 100 (cm), 
+ int32_t relative_alt; ///< Fused relative altitude, expressed as meters * 100.
  float quat[4]; ///< Quaternion components: x, y, z, w (0 0 0 1) is the null-rotation)
  float rollspeed; ///< Roll angular speed (rad/s)
  float pitchspeed; ///< Pitch angular speed (rad/s)
  float yawspeed; ///< Yaw angular speed (rad/s)
- float covariance[45]; ///< Upper diagonal portion of a 9x9 covariance matrix
+ float covariance[45]; ///< Upper triangular portion of a 9x9 covariance matrix
  int16_t vx; ///< Fused North velocity, expressed as m/s * 100
  int16_t vy; ///< Fused East velocity, expressed as m/s * 100
  int16_t vz; ///< Fused Down velocity, expressed as m/s * 100
@@ -57,8 +57,8 @@ typedef struct __mavlink_global_pos_att_ned_cov_t
  * @param time_boot_ms Timestamp (milliseconds since system boot)
  * @param lat Latitude, expressed as * 1E7
  * @param lon Longitude, expressed as * 1E7
- * @param alt Altitude in meters above home altitude, expressed as * 1000 (millimeters), 
- * @param relative_alt Fused altitude, expressed as * 1000 (millimeters)
+ * @param alt MSL Altitude in meters, expressed as m * 100 (cm), 
+ * @param relative_alt Fused relative altitude, expressed as meters * 100.
  * @param vx Fused North velocity, expressed as m/s * 100
  * @param vy Fused East velocity, expressed as m/s * 100
  * @param vz Fused Down velocity, expressed as m/s * 100
@@ -66,7 +66,7 @@ typedef struct __mavlink_global_pos_att_ned_cov_t
  * @param rollspeed Roll angular speed (rad/s)
  * @param pitchspeed Pitch angular speed (rad/s)
  * @param yawspeed Yaw angular speed (rad/s)
- * @param covariance Upper diagonal portion of a 9x9 covariance matrix
+ * @param covariance Upper triangular portion of a 9x9 covariance matrix
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_global_pos_att_ned_cov_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -123,8 +123,8 @@ static inline uint16_t mavlink_msg_global_pos_att_ned_cov_pack(uint8_t system_id
  * @param time_boot_ms Timestamp (milliseconds since system boot)
  * @param lat Latitude, expressed as * 1E7
  * @param lon Longitude, expressed as * 1E7
- * @param alt Altitude in meters above home altitude, expressed as * 1000 (millimeters), 
- * @param relative_alt Fused altitude, expressed as * 1000 (millimeters)
+ * @param alt MSL Altitude in meters, expressed as m * 100 (cm), 
+ * @param relative_alt Fused relative altitude, expressed as meters * 100.
  * @param vx Fused North velocity, expressed as m/s * 100
  * @param vy Fused East velocity, expressed as m/s * 100
  * @param vz Fused Down velocity, expressed as m/s * 100
@@ -132,7 +132,7 @@ static inline uint16_t mavlink_msg_global_pos_att_ned_cov_pack(uint8_t system_id
  * @param rollspeed Roll angular speed (rad/s)
  * @param pitchspeed Pitch angular speed (rad/s)
  * @param yawspeed Yaw angular speed (rad/s)
- * @param covariance Upper diagonal portion of a 9x9 covariance matrix
+ * @param covariance Upper triangular portion of a 9x9 covariance matrix
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_global_pos_att_ned_cov_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -215,8 +215,8 @@ static inline uint16_t mavlink_msg_global_pos_att_ned_cov_encode_chan(uint8_t sy
  * @param time_boot_ms Timestamp (milliseconds since system boot)
  * @param lat Latitude, expressed as * 1E7
  * @param lon Longitude, expressed as * 1E7
- * @param alt Altitude in meters above home altitude, expressed as * 1000 (millimeters), 
- * @param relative_alt Fused altitude, expressed as * 1000 (millimeters)
+ * @param alt MSL Altitude in meters, expressed as m * 100 (cm), 
+ * @param relative_alt Fused relative altitude, expressed as meters * 100.
  * @param vx Fused North velocity, expressed as m/s * 100
  * @param vy Fused East velocity, expressed as m/s * 100
  * @param vz Fused Down velocity, expressed as m/s * 100
@@ -224,7 +224,7 @@ static inline uint16_t mavlink_msg_global_pos_att_ned_cov_encode_chan(uint8_t sy
  * @param rollspeed Roll angular speed (rad/s)
  * @param pitchspeed Pitch angular speed (rad/s)
  * @param yawspeed Yaw angular speed (rad/s)
- * @param covariance Upper diagonal portion of a 9x9 covariance matrix
+ * @param covariance Upper triangular portion of a 9x9 covariance matrix
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -365,7 +365,7 @@ static inline int32_t mavlink_msg_global_pos_att_ned_cov_get_lon(const mavlink_m
 /**
  * @brief Get field alt from global_pos_att_ned_cov message
  *
- * @return Altitude in meters above home altitude, expressed as * 1000 (millimeters), 
+ * @return MSL Altitude in meters, expressed as m * 100 (cm), 
  */
 static inline int32_t mavlink_msg_global_pos_att_ned_cov_get_alt(const mavlink_message_t* msg)
 {
@@ -375,7 +375,7 @@ static inline int32_t mavlink_msg_global_pos_att_ned_cov_get_alt(const mavlink_m
 /**
  * @brief Get field relative_alt from global_pos_att_ned_cov message
  *
- * @return Fused altitude, expressed as * 1000 (millimeters)
+ * @return Fused relative altitude, expressed as meters * 100.
  */
 static inline int32_t mavlink_msg_global_pos_att_ned_cov_get_relative_alt(const mavlink_message_t* msg)
 {
@@ -455,7 +455,7 @@ static inline float mavlink_msg_global_pos_att_ned_cov_get_yawspeed(const mavlin
 /**
  * @brief Get field covariance from global_pos_att_ned_cov message
  *
- * @return Upper diagonal portion of a 9x9 covariance matrix
+ * @return Upper triangular portion of a 9x9 covariance matrix
  */
 static inline uint16_t mavlink_msg_global_pos_att_ned_cov_get_covariance(const mavlink_message_t* msg, float *covariance)
 {

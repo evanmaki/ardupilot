@@ -124,6 +124,9 @@ public:
         k_param_terrain_lookahead,
         k_param_fbwa_tdrag_chan,
         k_param_rangefinder_landing,
+        k_param_land_flap_percent,
+        k_param_takeoff_flap_percent,
+        k_param_flap_slewrate,
         k_param_joystick,
 
         // 100: Arming parameters
@@ -440,6 +443,8 @@ public:
     AP_Int8 flap_1_speed;
     AP_Int8 flap_2_percent;
     AP_Int8 flap_2_speed;
+    AP_Int8 land_flap_percent;
+    AP_Int8 takeoff_flap_percent;
     AP_Int8 rssi_pin;
     AP_Float rssi_range;             // allows to set max voltage for rssi pin such as 5.0, 3.3 etc.     
     AP_Int8 inverted_flight_ch;             // 0=disabled, 1-8 is channel for inverted flight trigger
@@ -462,6 +467,7 @@ public:
     AP_Int16 glide_slope_threshold;
     AP_Int8 fbwa_tdrag_chan;
     AP_Int8 rangefinder_landing;
+    AP_Int8 flap_slewrate;
 
     // RC channels
     RC_Channel rc_1;
