@@ -235,6 +235,9 @@ public:
     // return a ground vector estimate in meters/second, in North/East order
     virtual Vector2f groundspeed_vector(void);
 
+    // return a heading based on ground vector in radians
+    virtual float ground_course(void);
+
     // return a ground velocity in meters/second, North/East/Down
     // order. This will only be accurate if have_inertial_nav() is
     // true 

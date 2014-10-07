@@ -223,6 +223,13 @@ Vector2f AP_AHRS::groundspeed_vector(void)
     return Vector2f(0.0f, 0.0f);
 }
 
+// return a heading based on ground vector in radians
+float AP_AHRS::ground_course(void)
+{
+    Vector2f grd_heading = groundspeed_vector();
+    return atan2(grd_heading.y, grd_heading.x);
+}
+
 // update_trig - recalculates _cos_roll, _cos_pitch, etc based on latest attitude
 //      should be called after _dcm_matrix is updated
 void AP_AHRS::update_trig(void)
