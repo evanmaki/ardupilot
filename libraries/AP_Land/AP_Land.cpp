@@ -206,8 +206,8 @@ bool AP_Land::preland_step_rally_land(const RallyLocation &ral_loc) {
             float bearing = (radians( (float)(get_bearing_cd(current_loc,_landing_wp)/100.0) ));
 
             // Calculate heading
-            float heading = _ahrs.yaw;
- 
+            float heading = ((AP_AHRS&) _ahrs).ground_course();
+
             // Check to see if the the plane is heading toward the
             // land waypoint, with a tolerance of 3 degrees
             if (fabs(wrap_PI(bearing - heading)) <= radians(3.0f)) {
