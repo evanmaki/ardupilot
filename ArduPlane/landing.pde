@@ -9,7 +9,6 @@
   final flare
  */
 
-/*
 static bool verify_land()
 {
     // we don't 'verify' landing in the sense that it never completes,
@@ -42,9 +41,9 @@ static bool verify_land()
     //   3) we have gone past the landing point and don't have
     //      rangefinder data (to prevent us keeping throttle on 
     //      after landing if we've had positive baro drift)    
-    if (height <= g.land_flare_alt ||
+    if ( ! lander.aborting_landing() && (height <= g.land_flare_alt ||
         height <= -auto_state.land_sink_rate * g.land_flare_sec ||
-        (!rangefinder_state.in_range && location_passed_point(current_loc, prev_WP_loc, next_WP_loc))) {
+        (!rangefinder_state.in_range && location_passed_point(current_loc, prev_WP_loc, next_WP_loc)))) {
 
         if (!auto_state.land_complete) {
             gcs_send_text_fmt(PSTR("Flare %.1fm sink=%.2f speed=%.1f"), 
@@ -77,7 +76,7 @@ static bool verify_land()
     //  to change mission item or reset the mission
     return false;
 }
-*/
+
 
 /*
   a special glide slope calculation for the landing approach
