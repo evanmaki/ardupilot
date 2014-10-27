@@ -566,6 +566,16 @@
                     <param index="5">Latitude</param>
                     <param index="6">Longitude</param>
                     <param index="7">Altitude</param>
+                </entry>
+               <entry value="31" name="MAV_CMD_NAV_LOITER_WITH_PARAMS">
+                    <description>Loiter at the specified Latittude, Longitude and Altitude.  If Lat=Lon=0, then loiter at the current position.  If the speed parameter is non-zero, tell the autopilot to attempt to loiter at the specified speed.  Don't consider the navigation command complete until the altitude speed have been reached within the tolerances specified AND the this has been true for at least the specified number of circuits (Min circuits parameter).</description>
+                    <param index="1">Speed (m/s)</param>
+                    <param index="2">Speed tolerance (m/s)</param>
+                    <param index="3">Altitude tolerance (m)</param>
+                    <param index="4">Min circuits</param>
+                    <param index="5">Longitude</param>
+                    <param index="6">Latitude</param>
+                    <param index="7">Altitude</param>
                </entry>
                <entry value="80" name="MAV_CMD_NAV_ROI">
                     <description>Sets the region of interest (ROI) for a sensor set or the vehicle itself. This can then be used by the vehicles control system to control the vehicle attitude and the attitude of various sensors such as cameras.</description>
