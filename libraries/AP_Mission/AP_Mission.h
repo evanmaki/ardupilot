@@ -120,6 +120,16 @@ public:
         float horiz_max;        // max horizontal distance the vehicle can move before the command will be aborted.  0 for no horizontal limit
     };
 
+    // nav loiter with params command
+    struct PACKED Loiter_With_Params_Command {
+        // speed tolerance (m/s)
+        float speed_tol;
+        // loiter radius (m); negative means counter-clockwise loiter
+        uint16_t loiter_rad;
+        // altitude tolerance (m)
+        uint16_t alt_tol;
+    };
+
     union PACKED Content {
         // jump structure
         Jump_Command jump;
@@ -156,6 +166,9 @@ public:
 
         // do-guided-limits
         Guided_Limits_Command guided_limits;
+
+        // loiter with params
+        Loiter_With_Params_Command loiter_params;
 
         // location
         Location location;      // Waypoint location

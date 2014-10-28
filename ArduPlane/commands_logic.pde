@@ -12,6 +12,7 @@ static void do_within_distance(const AP_Mission::Mission_Command& cmd);
 static void do_change_alt(const AP_Mission::Mission_Command& cmd);
 static void do_change_speed(const AP_Mission::Mission_Command& cmd);
 static void do_set_home(const AP_Mission::Mission_Command& cmd);
+static void do_loiter_with_params(const AP_Mission::Mission_Command& cmd);
 static bool verify_nav_wp(const AP_Mission::Mission_Command& cmd);
 
 
@@ -72,6 +73,10 @@ start_command(const AP_Mission::Mission_Command& cmd)
 
     case MAV_CMD_NAV_LOITER_TIME:
         do_loiter_time(cmd);
+        break;
+
+    case MAV_CMD_NAV_LOITER_WITH_PARAMS:
+        do_loiter_with_params(cmd);
         break;
 
     case MAV_CMD_NAV_RETURN_TO_LAUNCH:
@@ -209,6 +214,9 @@ static bool verify_command(const AP_Mission::Mission_Command& cmd)        // Ret
     case MAV_CMD_NAV_LOITER_TIME:
         return verify_loiter_time();
 
+    case MAV_CMD_NAV_LOITER_WITH_PARAMS:
+        return verify_loiter_with_params();
+
     case MAV_CMD_NAV_RETURN_TO_LAUNCH:
         return verify_RTL();
 
@@ -340,6 +348,30 @@ static void do_loiter_time(const AP_Mission::Mission_Command& cmd)
     loiter.start_time_ms = 0;
     loiter.time_max_ms = cmd.p1 * (uint32_t)1000;     // units are seconds
     loiter_set_direction_wp(cmd);
+}
+
+static void do_loiter_with_params(const AP_Mission::Mission_Command& cmd) {
+     //set target alt
+    if (cmd.content.location.alt != 0) {
+        next_WP_loc.alt = cmd.content.location.alt;
+
+        // convert relative alt to absolute alt
+        if (cmd.content.location.flags.relative_alt) {
+            next_WP_loc.flags.relative_alt = false;
+            next_WP_loc.alt += home.alt;
+        }
+    }
+    
+    //are lat and lon 0?  if so, don't change the current wp lat/lon
+    if (cmd.content.location.lat != 0 && cmd.content.location.lng != 0) {
+        set_next_WP(cmd.content.location);
+    }
+
+    //TODO: radius
+    //loiter.radius = cmd.content.loiter_params.loiter_rad;
+    loiter_set_direction_wp(cmd);
+
+    //TODO: set target speed...
 }
 
 /********************************************************************************/
@@ -481,6 +513,14 @@ static bool verify_loiter_turns()
         // clear the command queue;
         return true;
     }
+    return false;
+}
+
+static bool verify_loiter_with_params() {
+    update_loiter();
+
+    //TODO check target altitude and speed
+
     return false;
 }
 

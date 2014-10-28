@@ -6,6 +6,15 @@
 #include "AP_Mission.h"
 #include <AP_Terrain.h>
 
+extern const AP_HAL::HAL& hal;
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
+ #include <stdio.h>
+ # define Debug(fmt, args ...)  do {printf("%s:%d: " fmt "\n", __FUNCTION__, __LINE__, ## args); hal.scheduler->delay(1); } while(0)
+#else
+ # define Debug(fmt, args ...)
+#endif
+
 const AP_Param::GroupInfo AP_Mission::var_info[] PROGMEM = {
 
     // @Param: TOTAL
@@ -515,9 +524,12 @@ bool AP_Mission::mavlink_to_mission_cmd(const mavlink_mission_item_t& packet, AP
     case MAV_CMD_NAV_LOITER_WITH_PARAMS:                // MAV ID: 31
         copy_location = true;
         cmd.p1 = packet.param1;                         // speed (m/s)
-        cmd.p2 = packet.param2;                         // speed tolerance (m/s)
-        cmd.p3 = packet.param3;                         // alt tolerance (m)
-        cmd.p4 = packet.param4;                         // min circuits
+        cmd.content.loiter_params.speed_tol = packet.param2; // speed tolerance (m/s)
+        cmd.content.loiter_params.loiter_rad  = fabs(packet.param3); // loiter raidus (m)
+        cmd.content.location.flags.loiter_ccw = (packet.param3 < 0);
+        cmd.content.loiter_params.alt_tol = packet.param4; // alt tolerance (m)
+        
+        Debug ("checking write: %f %f", packet.param2, cmd.content.loiter_params.speed_tol);
         break;
 
     case MAV_CMD_NAV_SPLINE_WAYPOINT:                   // MAV ID: 82
@@ -788,9 +800,14 @@ bool AP_Mission::mission_cmd_to_mavlink(const AP_Mission::Mission_Command& cmd, 
     case MAV_CMD_NAV_LOITER_WITH_PARAMS:                // MAV ID: 31
         copy_location = true;
         packet.param1 = cmd.p1;                         // desired speed (m/s)
-        packet.param2 = cmd.p2;                         // speed tolerance (m/s)
-        packet.param3 = cmd.p3;                         // alt tolerance (m)
-        packet.param4 = cmd.p4;                         // minimum circuits
+        packet.param2 = cmd.content.loiter_params.speed_tol; // speed tolerance (m/s)
+        packet.param3 = cmd.content.loiter_params.loiter_rad; // loiter raidus (m)
+        if (cmd.content.location.flags.loiter_ccw) {
+            packet.param3 *= -1.0f;
+        }
+        packet.param4 = cmd.content.loiter_params.alt_tol; // alt tolerance (m)
+        
+        Debug ("checking read: %f %f", packet.param2, cmd.content.loiter_params.speed_tol);
         break;
 
     case MAV_CMD_NAV_SPLINE_WAYPOINT:                   // MAV ID: 82
