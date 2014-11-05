@@ -1216,7 +1216,7 @@ static void handle_auto_mode(void)
             nav_roll_cd = constrain_int32(nav_roll_cd, -g.level_roll_limit*100UL, g.level_roll_limit*100UL);
             
             // hold pitch constant in final approach
-            nav_pitch_cd = g.land_pitch_cd;
+            nav_pitch_cd = aparm.land_pitch_cd;
 
             // if we've touched down then disarm motor
             if (arming.is_armed() && ! lander.still_vibrating()) {
