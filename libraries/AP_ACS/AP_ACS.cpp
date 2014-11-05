@@ -128,8 +128,7 @@ bool AP_ACS::check(ACS_FlightMode mode,
     //always check loss of GCS comms 2nd (for auto landing)
     //If we haven't had any contact with the GCS for two minutes, then 
     //enter failsafe state
-    if (now - last_hearbeat_ms > 120000 ||
-        now - last_radio_status_remrssi_ms > 120000) {
+    if (now - last_heartbeat_ms > 120000) {
         _current_fs_state = GCS_AUTOLAND_FS;
         return false;
     }
